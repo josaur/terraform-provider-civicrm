@@ -30,6 +30,9 @@ resource "civicrm_group" "volunteers" {
 
 Run `terraform init` to download the provider, then `terraform apply` to create resources.
 
+> **Note**: This provider is distributed via GitHub releases, not the Terraform Registry.  
+> See [GITHUB-DISTRIBUTION.md](GITHUB-DISTRIBUTION.md) for details on how this works.
+
 ## Features
 
 This provider supports managing the following CiviCRM resources:
@@ -601,6 +604,13 @@ make install
 ```bash
 make fmt
 ```
+
+## Additional Documentation
+
+- **[GITHUB-DISTRIBUTION.md](GITHUB-DISTRIBUTION.md)** - Understanding GitHub-based provider distribution (not using Terraform Registry)
+- **[USAGE.md](USAGE.md)** - Comprehensive guide for using this provider in your projects
+- **[PUBLISHING.md](PUBLISHING.md)** - Guide for maintainers on publishing releases
+- **[CHANGELOG.md](CHANGELOG.md)** - Version history and release notes
 
 ## License
 
