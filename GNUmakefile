@@ -11,9 +11,9 @@ GOARCH?=$(shell go env GOARCH)
 # Windows: %APPDATA%\terraform.d\plugins
 # Unix: ~/.terraform.d/plugins
 ifeq ($(GOOS),windows)
-	INSTALL_DIR=$(APPDATA)/terraform.d/plugins/registry.terraform.io/example/civicrm/$(VERSION)/$(OS_ARCH)
+	INSTALL_DIR=$(APPDATA)/terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/$(VERSION)/$(OS_ARCH)
 else
-	INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/example/civicrm/$(VERSION)/$(OS_ARCH)
+	INSTALL_DIR=~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/$(VERSION)/$(OS_ARCH)
 endif
 
 .PHONY: all build install clean test fmt lint docs

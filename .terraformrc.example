@@ -6,7 +6,7 @@
 
 provider_installation {
   dev_overrides {
-    "registry.terraform.io/example/civicrm" = "/path/to/your/terraform-provider-civicrm"
+    "Caritas-Deutschland-Digitallabor/civicrm" = "/path/to/your/civicrm-terraform"
   }
 
   # For all other providers, install them directly from their origin provider
