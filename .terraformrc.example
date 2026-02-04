@@ -1,0 +1,16 @@
+# Copy this file to ~/.terraformrc (Linux/Mac) or %APPDATA%/terraform.rc (Windows)
+# for local development and testing.
+#
+# This tells Terraform to use your locally-built provider instead of
+# downloading from the registry.
+
+provider_installation {
+  dev_overrides {
+    "registry.terraform.io/example/civicrm" = "/path/to/your/terraform-provider-civicrm"
+  }
+
+  # For all other providers, install them directly from their origin provider
+  # registries as normal. If you omit this, Terraform will _only_ use
+  # the dev_overrides block, and so no other providers will be available.
+  direct {}
+}
