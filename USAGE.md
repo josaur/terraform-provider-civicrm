@@ -4,7 +4,18 @@ This document explains how to use the CiviCRM Terraform Provider in your Terrafo
 
 ## Installation
 
-The provider is automatically downloaded from GitHub releases when you initialize Terraform. No manual installation is required.
+The provider is automatically downloaded from **GitHub releases** (not the official Terraform Registry) when you initialize Terraform. No manual installation or registry registration is required.
+
+### How It Works
+
+This provider uses Terraform's **implicit provider installation** mechanism:
+
+- When you specify `source = "Caritas-Deutschland-Digitallabor/civicrm"`, Terraform automatically discovers and downloads the provider from GitHub
+- No registry.terraform.io registration needed
+- Binaries are fetched directly from: https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases
+- Terraform verifies checksums and signatures automatically
+
+This is a standard distribution method for Terraform providers and works exactly like providers from the official registry from the user's perspective.
 
 ## Basic Setup
 
@@ -292,13 +303,89 @@ version = "~> 0.1"    # Allow minor updates (0.x.y)
 
 ## Troubleshooting
 
-### Provider Not Found
+### Provider Installation from GitHub
 
-If you get an error about the provider not being found:
+This provider is distributed via GitHub releases, not the official Terraform Registry. Here are common issues and solutions:
 
-1. Ensure you have internet access
-2. Check that the version exists in the [GitHub releases](https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases)
-3. Try `terraform init -upgrade` to refresh the provider cache
+#### Provider Not Found Error
+
+```
+Error: Failed to query available provider packages
+Could not retrieve the list of available versions for provider Caritas-Deutschland-Digitallabor/civicrm
+```
+
+**Causes and Solutions**:
+
+1. **No internet access to GitHub**
+   - Ensure you can access https://github.com
+   - Check firewall/proxy settings
+   - For air-gapped environments, see "Air-Gapped Installation" below
+
+2. **No releases published yet**
+   - Check [GitHub releases](https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases)
+   - Ensure at least one release is published and not in draft state
+
+3. **Version constraint too restrictive**
+   - Check available versions in releases
+   - Try loosening the version constraint: `version = "~> 0.1"` instead of exact version
+
+4. **Stale cache**
+   - Clear Terraform's cache: `rm -rf .terraform .terraform.lock.hcl`
+   - Run `terraform init` again
+
+#### Checksum Verification Failed
+
+```
+Error: Failed to install provider
+checksum mismatch
+```
+
+**Solutions**:
+1. Clear the plugin cache: `rm -rf ~/.terraform.d/plugins/`
+2. Remove lock file: `rm .terraform.lock.hcl`
+3. Re-run `terraform init`
+
+This can happen if a release was updated after you first downloaded it.
+
+#### Air-Gapped Installation
+
+For environments without internet access:
+
+1. **Download on a machine with internet**:
+   ```bash
+   # Go to: https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases
+   # Download the appropriate file for your platform, e.g.:
+   # - terraform-provider-civicrm_0.1.0_linux_amd64.zip
+   # - terraform-provider-civicrm_0.1.0_SHA256SUMS
+   ```
+
+2. **Transfer files to air-gapped machine**
+
+3. **Install manually**:
+   ```bash
+   # Extract the ZIP
+   unzip terraform-provider-civicrm_0.1.0_linux_amd64.zip
+   
+   # Create plugin directory
+   mkdir -p ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/linux_amd64/
+   
+   # Move binary (note: binary name includes version)
+   mv terraform-provider-civicrm_v0.1.0 ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/linux_amd64/
+   
+   # Make executable
+   chmod +x ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/linux_amd64/terraform-provider-civicrm_v0.1.0
+   ```
+
+4. **Run terraform init** - it will detect and use the local binary
+
+For Windows (PowerShell):
+```powershell
+# Extract and move
+Expand-Archive terraform-provider-civicrm_0.1.0_windows_amd64.zip
+$pluginDir = "$env:APPDATA\terraform.d\plugins\registry.terraform.io\Caritas-Deutschland-Digitallabor\civicrm\0.1.0\windows_amd64"
+New-Item -ItemType Directory -Force -Path $pluginDir
+Move-Item terraform-provider-civicrm_v0.1.0.exe $pluginDir
+```
 
 ### Authentication Issues
 

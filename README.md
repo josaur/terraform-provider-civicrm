@@ -49,7 +49,31 @@ Each resource also has a corresponding data source for read-only lookups.
 
 ## Using the Provider
 
-### From GitHub Releases (Recommended)
+### From GitHub Releases (Without Terraform Registry)
+
+This provider is distributed via **GitHub releases** and does not require registration with the official Terraform Registry. Terraform can automatically download providers from GitHub using the implicit provider installation mechanism.
+
+#### How It Works
+
+When you specify a provider source like `Caritas-Deutschland-Digitallabor/civicrm`, Terraform interprets this as:
+
+1. **Hostname**: `registry.terraform.io` (default when not specified)
+2. **Namespace**: `Caritas-Deutschland-Digitallabor`
+3. **Type**: `civicrm`
+
+However, since this provider is not published to the official Terraform Registry, Terraform falls back to looking for releases directly from the GitHub repository at:
+```
+https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases
+```
+
+Terraform automatically:
+- Detects the GitHub repository from the namespace
+- Downloads the appropriate binary for your platform from GitHub releases
+- Verifies checksums (SHA256SUMS file)
+- Verifies GPG signatures (if available)
+- Caches the provider locally
+
+#### Basic Usage
 
 To use this provider in your Terraform configuration, specify it in your `required_providers` block:
 
@@ -193,6 +217,151 @@ $installDir = "$env:APPDATA\terraform.d\plugins\registry.terraform.io\Caritas-De
 New-Item -ItemType Directory -Force -Path $installDir
 Copy-Item terraform-provider-civicrm.exe $installDir
 ```
+
+## GitHub-Based Distribution (Not Using Official Terraform Registry)
+
+This provider is distributed through **GitHub Releases** and is designed to work without being published to the official Terraform Registry. This section explains how this works and what you need to know.
+
+### Understanding the Distribution Model
+
+When you reference a provider with the source `Caritas-Deutschland-Digitallabor/civicrm`, Terraform uses its **implicit provider installation** mechanism:
+
+1. **Provider Source Format**: `<NAMESPACE>/<TYPE>`
+   - In this case: `Caritas-Deutschland-Digitallabor/civicrm`
+   - No hostname means it defaults to `registry.terraform.io`
+
+2. **GitHub Repository Discovery**:
+   - Terraform recognizes organization names from GitHub
+   - It looks for releases at: `https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases`
+   - The repository name typically follows the pattern `terraform-provider-<TYPE>` but Terraform can also find repos named differently
+
+3. **Release Requirements**:
+   - Releases must be tagged with semantic versioning (e.g., `v0.1.0`)
+   - Must include platform-specific binaries (e.g., `terraform-provider-civicrm_v0.1.0_linux_amd64.zip`)
+   - Must include a `<PROJECT>_<VERSION>_SHA256SUMS` file with checksums
+   - Optionally includes a `<PROJECT>_<VERSION>_SHA256SUMS.sig` GPG signature file
+
+### What Happens During `terraform init`
+
+When you run `terraform init`, Terraform:
+
+1. **Parses** your `required_providers` block
+2. **Queries** for available versions (from GitHub API if not in registry)
+3. **Selects** a version that matches your constraint (e.g., `~> 0.1`)
+4. **Downloads** the appropriate binary for your platform:
+   - Detects your OS and architecture
+   - Downloads the ZIP archive from GitHub releases
+   - Example: `terraform-provider-civicrm_v0.1.0_linux_amd64.zip`
+5. **Verifies** the download:
+   - Checks SHA256 checksum against the `SHA256SUMS` file
+   - Verifies GPG signature if present and configured
+6. **Installs** the provider to your local plugin cache:
+   - Linux/Mac: `~/.terraform.d/plugins/`
+   - Windows: `%APPDATA%\terraform.d\plugins\`
+7. **Caches** the provider for future use
+
+### Advantages of GitHub-Based Distribution
+
+✅ **No Registry Registration Required**: No need to publish to Terraform Registry  
+✅ **Automatic Distribution**: Works with existing CI/CD (GitHub Actions + GoReleaser)  
+✅ **Version Control**: Versions tied directly to Git tags  
+✅ **Simple Publishing**: Just push a version tag to trigger a release  
+✅ **Open Source Friendly**: Perfect for open-source projects  
+✅ **Standard Terraform Workflow**: Users use standard `terraform init`
+
+### Comparison: GitHub vs Official Registry
+
+| Aspect | GitHub Releases | Official Terraform Registry |
+|--------|----------------|----------------------------|
+| **Setup** | Push version tags | Sign up, verify namespace, configure |
+| **Publishing** | Automatic via GitHub Actions | Manual or CI/CD to registry |
+| **Discovery** | Direct GitHub organization reference | Searchable on registry.terraform.io |
+| **Documentation** | GitHub README/Wiki | Registry documentation page |
+| **Provider Source** | `org/provider` | `org/provider` (same!) |
+| **Usage** | Identical for end users | Identical for end users |
+
+### Requirements for GitHub-Based Providers
+
+To successfully distribute a Terraform provider via GitHub releases, ensure:
+
+1. **Repository Naming**: 
+   - Recommended: `terraform-provider-<name>` (e.g., `terraform-provider-civicrm`)
+   - Alternative: Repository name should contain the provider type
+
+2. **Release Artifacts**:
+   - Binary naming: `terraform-provider-<name>_v<version>`
+   - Archive naming: `terraform-provider-<name>_<version>_<os>_<arch>.zip`
+   - Checksum file: `terraform-provider-<name>_<version>_SHA256SUMS`
+   - Optional signature: `terraform-provider-<name>_<version>_SHA256SUMS.sig`
+
+3. **Version Tags**:
+   - Must use semantic versioning: `v0.1.0`, `v1.2.3`, etc.
+   - Tags trigger automated releases (via GoReleaser)
+
+4. **Platform Binaries**:
+   - Must support common platforms: linux_amd64, darwin_amd64, windows_amd64
+   - Optional: Additional platforms (arm64, etc.)
+
+### Troubleshooting GitHub-Based Installation
+
+#### Provider Not Found
+
+If Terraform can't find the provider:
+
+```
+Error: Failed to query available provider packages
+│ Could not retrieve the list of available versions for provider Caritas-Deutschland-Digitallabor/civicrm
+```
+
+**Solutions**:
+1. Verify a release exists: https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/releases
+2. Check that the release is not a draft
+3. Ensure the release is tagged with `v` prefix (e.g., `v0.1.0`)
+4. Verify you have internet access to GitHub
+
+#### Checksum Verification Failed
+
+If checksum verification fails:
+
+```
+Error: Failed to install provider
+│ Error while installing Caritas-Deutschland-Digitallabor/civicrm: checksum mismatch
+```
+
+**Solutions**:
+1. Clear Terraform's plugin cache: `rm -rf ~/.terraform.d/plugins/`
+2. Run `terraform init` again
+3. Check if the release was re-uploaded (GitHub releases are immutable, but can be deleted/recreated)
+
+#### Wrong Platform Binary
+
+If Terraform downloads the wrong binary:
+
+**Solutions**:
+1. Check available platforms in the release
+2. Ensure your platform is supported
+3. For uncommon platforms, you may need to build from source
+
+### Using in Air-Gapped Environments
+
+For environments without internet access, you can manually install the provider:
+
+1. **Download** the appropriate binary for your platform from GitHub releases
+2. **Extract** the ZIP archive
+3. **Place** the binary in the plugin directory:
+   ```bash
+   # Linux/macOS
+   mkdir -p ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/<VERSION>/<OS>_<ARCH>/
+   cp terraform-provider-civicrm_v<VERSION> ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/<VERSION>/<OS>_<ARCH>/
+   
+   # Example for Linux AMD64, version 0.1.0:
+   mkdir -p ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/linux_amd64/
+   cp terraform-provider-civicrm_v0.1.0 ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/linux_amd64/
+   ```
+
+4. **Run** `terraform init` - it will use the local binary
+
+Alternatively, use a [Terraform provider network mirror](https://developer.hashicorp.com/terraform/cli/config/config-file#provider-installation) for managing multiple air-gapped installations.
 
 ## Configuration
 
