@@ -1,4 +1,4 @@
-module github.com/example/terraform-provider-civicrm
+module github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform
 
 go 1.21
 

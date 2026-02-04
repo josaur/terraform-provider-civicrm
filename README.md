@@ -1,9 +1,34 @@
 # Terraform Provider for CiviCRM
 
-[![Build](https://github.com/example/terraform-provider-civicrm/actions/workflows/build.yml/badge.svg)](https://github.com/example/terraform-provider-civicrm/actions/workflows/build.yml)
-[![Release](https://github.com/example/terraform-provider-civicrm/actions/workflows/release.yml/badge.svg)](https://github.com/example/terraform-provider-civicrm/actions/workflows/release.yml)
+[![Build](https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/actions/workflows/build.yml/badge.svg)](https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/actions/workflows/build.yml)
+[![Release](https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/actions/workflows/release.yml/badge.svg)](https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/actions/workflows/release.yml)
 
 A Terraform provider for managing CiviCRM access control resources via API v4.
+
+## Quick Start
+
+```hcl
+terraform {
+  required_providers {
+    civicrm = {
+      source  = "Caritas-Deutschland-Digitallabor/civicrm"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "civicrm" {
+  url     = "https://your-civicrm-instance.org"
+  api_key = "your-api-key"
+}
+
+resource "civicrm_group" "volunteers" {
+  name  = "volunteers"
+  title = "Volunteers"
+}
+```
+
+Run `terraform init` to download the provider, then `terraform apply` to create resources.
 
 ## Features
 
@@ -19,15 +44,136 @@ Each resource also has a corresponding data source for read-only lookups.
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.21 (for building from source)
+- [Go](https://golang.org/doc/install) >= 1.21 (only for building from source)
 - CiviCRM >= 5.47 (required for full REST API v4 support)
 
-## Building the Provider
+## Using the Provider
+
+### From GitHub Releases (Recommended)
+
+To use this provider in your Terraform configuration, specify it in your `required_providers` block:
+
+```hcl
+terraform {
+  required_providers {
+    civicrm = {
+      source  = "Caritas-Deutschland-Digitallabor/civicrm"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "civicrm" {
+  url     = "https://your-civicrm-instance.org"
+  api_key = "your-api-key"
+}
+```
+
+Terraform will automatically download the provider from the GitHub releases when you run `terraform init`.
+
+### Provider Installation
+
+When using the provider from GitHub releases, Terraform handles the installation automatically. The provider supports the following platforms:
+
+- Linux (amd64, arm64)
+- macOS/Darwin (amd64, arm64)  
+- Windows (amd64, arm64)
+
+### Using in Your Terraform Projects
+
+To use this provider in your Terraform projects:
+
+1. **Create a new Terraform configuration** or add to an existing one:
+
+```hcl
+# main.tf
+terraform {
+  required_version = ">= 1.0"
+  
+  required_providers {
+    civicrm = {
+      source  = "Caritas-Deutschland-Digitallabor/civicrm"
+      version = "~> 0.1"
+    }
+  }
+}
+
+provider "civicrm" {
+  url     = var.civicrm_url
+  api_key = var.civicrm_api_key
+}
+
+# Your CiviCRM resources here
+resource "civicrm_group" "example" {
+  name  = "example_group"
+  title = "Example Group"
+}
+```
+
+2. **Set up variables** (optional but recommended):
+
+```hcl
+# variables.tf
+variable "civicrm_url" {
+  description = "The URL of your CiviCRM instance"
+  type        = string
+}
+
+variable "civicrm_api_key" {
+  description = "The API key for CiviCRM authentication"
+  type        = string
+  sensitive   = true
+}
+```
+
+3. **Initialize and apply**:
+
+```bash
+# Initialize Terraform (downloads the provider)
+terraform init
+
+# Plan your changes
+terraform plan
+
+# Apply the configuration
+terraform apply
+```
+
+4. **Pass credentials securely**:
+
+```bash
+# Option 1: Use environment variables
+export TF_VAR_civicrm_url="https://your-instance.org"
+export TF_VAR_civicrm_api_key="your-api-key"
+terraform apply
+
+# Option 2: Use a terraform.tfvars file (add to .gitignore!)
+cat > terraform.tfvars <<EOF
+civicrm_url     = "https://your-instance.org"
+civicrm_api_key = "your-api-key"
+EOF
+terraform apply
+
+# Option 3: Use command-line flags
+terraform apply \
+  -var="civicrm_url=https://your-instance.org" \
+  -var="civicrm_api_key=your-api-key"
+```
+
+**Important Security Notes:**
+- Never commit `terraform.tfvars` files containing secrets
+- Use environment variables or secret management tools in CI/CD
+- Consider using the provider's environment variable support: `CIVICRM_URL` and `CIVICRM_API_KEY`
+
+
+## Building the Provider from Source
+
+If you need to build the provider from source (for development or custom modifications):
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/example/terraform-provider-civicrm.git
-cd terraform-provider-civicrm
+git clone https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform.git
+cd civicrm-terraform
 ```
 
 2. Build the provider:
@@ -39,11 +185,11 @@ go build -o terraform-provider-civicrm
 3. Install for local development:
 ```bash
 # Linux/Mac
-mkdir -p ~/.terraform.d/plugins/registry.terraform.io/example/civicrm/0.1.0/$(go env GOOS)_$(go env GOARCH)
-cp terraform-provider-civicrm ~/.terraform.d/plugins/registry.terraform.io/example/civicrm/0.1.0/$(go env GOOS)_$(go env GOARCH)/
+mkdir -p ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/$(go env GOOS)_$(go env GOARCH)
+cp terraform-provider-civicrm ~/.terraform.d/plugins/registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm/0.1.0/$(go env GOOS)_$(go env GOARCH)/
 
 # Windows (PowerShell)
-$installDir = "$env:APPDATA\terraform.d\plugins\registry.terraform.io\example\civicrm\0.1.0\windows_amd64"
+$installDir = "$env:APPDATA\terraform.d\plugins\registry.terraform.io\Caritas-Deutschland-Digitallabor\civicrm\0.1.0\windows_amd64"
 New-Item -ItemType Directory -Force -Path $installDir
 Copy-Item terraform-provider-civicrm.exe $installDir
 ```

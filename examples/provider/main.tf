@@ -1,7 +1,7 @@
 terraform {
   required_providers {
     civicrm = {
-      source  = "registry.terraform.io/example/civicrm"
+      source  = "Caritas-Deutschland-Digitallabor/civicrm"
       version = "~> 0.1"
     }
   }

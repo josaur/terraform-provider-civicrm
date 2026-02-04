@@ -5,7 +5,7 @@ import (
 	"flag"
 	"log"
 
-	"github.com/example/terraform-provider-civicrm/internal/provider"
+	"github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/internal/provider"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 )
 
@@ -20,7 +20,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		Address: "registry.terraform.io/example/civicrm",
+		Address: "registry.terraform.io/Caritas-Deutschland-Digitallabor/civicrm",
 		Debug:   debug,
 	}
 
