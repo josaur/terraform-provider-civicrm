@@ -55,7 +55,7 @@ func (p *CiviCRMProvider) Schema(ctx context.Context, req provider.SchemaRequest
 			},
 			"insecure": schema.BoolAttribute{
 				Description: "Skip TLS certificate verification. Only use for development. Default: false.",
-				Optional:   true,
+				Optional:    true,
 			},
 		},
 	}
