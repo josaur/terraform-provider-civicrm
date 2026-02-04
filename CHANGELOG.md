@@ -31,4 +31,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Actions workflow for automated releases
 - GoReleaser configuration for multi-platform builds
 
-[Unreleased]: https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform/compare/main...HEAD
