@@ -24,6 +24,11 @@ jobs:
           go-version: '1.21'
           cache: true
 
+      - name: Generate documentation
+        run: |
+          go install github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs@latest
+          tfplugindocs generate
+
       - name: Import GPG key
         id: import_gpg
         uses: crazy-max/ghaction-import-gpg@v6
