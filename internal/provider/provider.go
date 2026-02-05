@@ -166,6 +166,13 @@ func (p *CiviCRMProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewACLRoleResource,
 		NewACLResource,
 		NewACLEntityRoleResource,
+		NewMailSettingsResource,
+		NewSiteEmailAddressResource,
+		NewCustomGroupResource,
+		NewCustomFieldResource,
+		NewTagResource,
+		NewContactTypeResource,
+		NewRelationshipTypeResource,
 	}
 }
 
