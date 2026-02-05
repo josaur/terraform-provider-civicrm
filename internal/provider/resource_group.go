@@ -22,18 +22,56 @@ var (
 	_ resource.ResourceWithImportState = &GroupResource{}
 )
 
+// Group type mappings between human-readable names and CiviCRM API values
+var groupTypeNameToID = map[string]string{
+	"Access Control": "1",
+	"Mailing List":   "2",
+}
+
+var groupTypeIDToName = map[string]string{
+	"1": "Access Control",
+	"2": "Mailing List",
+}
+
+// convertGroupTypesToIDs converts human-readable group type names to API IDs
+func convertGroupTypesToIDs(names []string) []string {
+	ids := make([]string, 0, len(names))
+	for _, name := range names {
+		if id, ok := groupTypeNameToID[name]; ok {
+			ids = append(ids, id)
+		}
+	}
+	return ids
+}
+
+// convertGroupTypeIDsToNames converts API IDs to human-readable group type names
+func convertGroupTypeIDsToNames(ids []string) []string {
+	names := make([]string, 0, len(ids))
+	for _, id := range ids {
+		if name, ok := groupTypeIDToName[id]; ok {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
 type GroupResource struct {
 	client *Client
 }
 
 type GroupResourceModel struct {
-	ID          types.Int64  `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Title       types.String `tfsdk:"title"`
-	Description types.String `tfsdk:"description"`
-	IsActive    types.Bool   `tfsdk:"is_active"`
-	Visibility  types.String `tfsdk:"visibility"`
-	GroupType   types.List   `tfsdk:"group_type"`
+	ID                  types.Int64  `tfsdk:"id"`
+	Name                types.String `tfsdk:"name"`
+	Title               types.String `tfsdk:"title"`
+	Description         types.String `tfsdk:"description"`
+	IsActive            types.Bool   `tfsdk:"is_active"`
+	Visibility          types.String `tfsdk:"visibility"`
+	GroupType           types.List   `tfsdk:"group_type"`
+	IsHidden            types.Bool   `tfsdk:"is_hidden"`
+	IsReserved          types.Bool   `tfsdk:"is_reserved"`
+	FrontendTitle       types.String `tfsdk:"frontend_title"`
+	FrontendDescription types.String `tfsdk:"frontend_description"`
+	Parents             types.List   `tfsdk:"parents"`
 }
 
 func NewGroupResource() resource.Resource {
@@ -80,9 +118,34 @@ func (r *GroupResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 				Default:     stringdefault.StaticString("User and User Admin Only"),
 			},
 			"group_type": schema.ListAttribute{
-				Description: "The types of the group (e.g., 'Mailing List', 'Access Control').",
+				Description: "The types of the group. Valid values: 'Access Control', 'Mailing List'.",
 				Optional:    true,
 				ElementType: types.StringType,
+			},
+			"is_hidden": schema.BoolAttribute{
+				Description: "Whether the group is hidden from the user interface. Default: false.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
+			"is_reserved": schema.BoolAttribute{
+				Description: "Whether the group is reserved (system group). Default: false.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
+			"frontend_title": schema.StringAttribute{
+				Description: "The public title of the group shown on frontend pages.",
+				Optional:    true,
+			},
+			"frontend_description": schema.StringAttribute{
+				Description: "The public description of the group shown on frontend pages.",
+				Optional:    true,
+			},
+			"parents": schema.ListAttribute{
+				Description: "List of parent group IDs for nested groups.",
+				Optional:    true,
+				ElementType: types.Int64Type,
 			},
 		},
 	}
@@ -120,10 +183,12 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	// Build values for API call
 	values := map[string]any{
-		"name":       plan.Name.ValueString(),
-		"title":      plan.Title.ValueString(),
-		"is_active":  plan.IsActive.ValueBool(),
-		"visibility": plan.Visibility.ValueString(),
+		"name":        plan.Name.ValueString(),
+		"title":       plan.Title.ValueString(),
+		"is_active":   plan.IsActive.ValueBool(),
+		"visibility":  plan.Visibility.ValueString(),
+		"is_hidden":   plan.IsHidden.ValueBool(),
+		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
 	if !plan.Description.IsNull() {
@@ -137,7 +202,26 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		values["group_type"] = groupTypes
+		// Convert human-readable names to API IDs
+		values["group_type"] = convertGroupTypesToIDs(groupTypes)
+	}
+
+	if !plan.FrontendTitle.IsNull() {
+		values["frontend_title"] = plan.FrontendTitle.ValueString()
+	}
+
+	if !plan.FrontendDescription.IsNull() {
+		values["frontend_description"] = plan.FrontendDescription.ValueString()
+	}
+
+	if !plan.Parents.IsNull() {
+		var parents []int64
+		diags = plan.Parents.ElementsAs(ctx, &parents, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		values["parents"] = parents
 	}
 
 	// Call API
@@ -175,6 +259,65 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 
 	if visibility, ok := GetString(result, "visibility"); ok {
 		plan.Visibility = types.StringValue(visibility)
+	}
+
+	// Handle group_type from API response
+	if groupTypeRaw, ok := result["group_type"]; ok && groupTypeRaw != nil {
+		if groupTypeSlice, ok := groupTypeRaw.([]any); ok {
+			ids := make([]string, 0, len(groupTypeSlice))
+			for _, v := range groupTypeSlice {
+				if s, ok := v.(string); ok {
+					ids = append(ids, s)
+				}
+			}
+			names := convertGroupTypeIDsToNames(ids)
+			groupTypeList, diags := types.ListValueFrom(ctx, types.StringType, names)
+			resp.Diagnostics.Append(diags...)
+			if !resp.Diagnostics.HasError() {
+				plan.GroupType = groupTypeList
+			}
+		}
+	}
+
+	if hidden, ok := GetBool(result, "is_hidden"); ok {
+		plan.IsHidden = types.BoolValue(hidden)
+	}
+
+	if reserved, ok := GetBool(result, "is_reserved"); ok {
+		plan.IsReserved = types.BoolValue(reserved)
+	}
+
+	if frontendTitle, ok := GetString(result, "frontend_title"); ok && frontendTitle != "" {
+		plan.FrontendTitle = types.StringValue(frontendTitle)
+	} else {
+		plan.FrontendTitle = types.StringNull()
+	}
+
+	if frontendDesc, ok := GetString(result, "frontend_description"); ok && frontendDesc != "" {
+		plan.FrontendDescription = types.StringValue(frontendDesc)
+	} else {
+		plan.FrontendDescription = types.StringNull()
+	}
+
+	// Handle parents from API response
+	if parentsRaw, ok := result["parents"]; ok && parentsRaw != nil {
+		if parentsSlice, ok := parentsRaw.([]any); ok {
+			parentIDs := make([]int64, 0, len(parentsSlice))
+			for _, v := range parentsSlice {
+				if id, ok := v.(float64); ok {
+					parentIDs = append(parentIDs, int64(id))
+				} else if id, ok := v.(int64); ok {
+					parentIDs = append(parentIDs, id)
+				}
+			}
+			if len(parentIDs) > 0 {
+				parentsList, diags := types.ListValueFrom(ctx, types.Int64Type, parentIDs)
+				resp.Diagnostics.Append(diags...)
+				if !resp.Diagnostics.HasError() {
+					plan.Parents = parentsList
+				}
+			}
+		}
 	}
 
 	tflog.Debug(ctx, "Created group", map[string]any{
@@ -229,6 +372,65 @@ func (r *GroupResource) Read(ctx context.Context, req resource.ReadRequest, resp
 		state.Visibility = types.StringValue(visibility)
 	}
 
+	// Handle group_type from API response
+	if groupTypeRaw, ok := result["group_type"]; ok && groupTypeRaw != nil {
+		if groupTypeSlice, ok := groupTypeRaw.([]any); ok {
+			ids := make([]string, 0, len(groupTypeSlice))
+			for _, v := range groupTypeSlice {
+				if s, ok := v.(string); ok {
+					ids = append(ids, s)
+				}
+			}
+			names := convertGroupTypeIDsToNames(ids)
+			groupTypeList, diags := types.ListValueFrom(ctx, types.StringType, names)
+			resp.Diagnostics.Append(diags...)
+			if !resp.Diagnostics.HasError() {
+				state.GroupType = groupTypeList
+			}
+		}
+	}
+
+	if hidden, ok := GetBool(result, "is_hidden"); ok {
+		state.IsHidden = types.BoolValue(hidden)
+	}
+
+	if reserved, ok := GetBool(result, "is_reserved"); ok {
+		state.IsReserved = types.BoolValue(reserved)
+	}
+
+	if frontendTitle, ok := GetString(result, "frontend_title"); ok && frontendTitle != "" {
+		state.FrontendTitle = types.StringValue(frontendTitle)
+	} else {
+		state.FrontendTitle = types.StringNull()
+	}
+
+	if frontendDesc, ok := GetString(result, "frontend_description"); ok && frontendDesc != "" {
+		state.FrontendDescription = types.StringValue(frontendDesc)
+	} else {
+		state.FrontendDescription = types.StringNull()
+	}
+
+	// Handle parents from API response
+	if parentsRaw, ok := result["parents"]; ok && parentsRaw != nil {
+		if parentsSlice, ok := parentsRaw.([]any); ok {
+			parentIDs := make([]int64, 0, len(parentsSlice))
+			for _, v := range parentsSlice {
+				if id, ok := v.(float64); ok {
+					parentIDs = append(parentIDs, int64(id))
+				} else if id, ok := v.(int64); ok {
+					parentIDs = append(parentIDs, id)
+				}
+			}
+			if len(parentIDs) > 0 {
+				parentsList, diags := types.ListValueFrom(ctx, types.Int64Type, parentIDs)
+				resp.Diagnostics.Append(diags...)
+				if !resp.Diagnostics.HasError() {
+					state.Parents = parentsList
+				}
+			}
+		}
+	}
+
 	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
 }
@@ -254,10 +456,12 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	// Build values for API call
 	values := map[string]any{
-		"name":       plan.Name.ValueString(),
-		"title":      plan.Title.ValueString(),
-		"is_active":  plan.IsActive.ValueBool(),
-		"visibility": plan.Visibility.ValueString(),
+		"name":        plan.Name.ValueString(),
+		"title":       plan.Title.ValueString(),
+		"is_active":   plan.IsActive.ValueBool(),
+		"visibility":  plan.Visibility.ValueString(),
+		"is_hidden":   plan.IsHidden.ValueBool(),
+		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
 	if !plan.Description.IsNull() {
@@ -273,7 +477,32 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		values["group_type"] = groupTypes
+		// Convert human-readable names to API IDs
+		values["group_type"] = convertGroupTypesToIDs(groupTypes)
+	}
+
+	if !plan.FrontendTitle.IsNull() {
+		values["frontend_title"] = plan.FrontendTitle.ValueString()
+	} else {
+		values["frontend_title"] = nil
+	}
+
+	if !plan.FrontendDescription.IsNull() {
+		values["frontend_description"] = plan.FrontendDescription.ValueString()
+	} else {
+		values["frontend_description"] = nil
+	}
+
+	if !plan.Parents.IsNull() {
+		var parents []int64
+		diags = plan.Parents.ElementsAs(ctx, &parents, false)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		values["parents"] = parents
+	} else {
+		values["parents"] = nil
 	}
 
 	// Call API
@@ -309,6 +538,65 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	if visibility, ok := GetString(result, "visibility"); ok {
 		plan.Visibility = types.StringValue(visibility)
+	}
+
+	// Handle group_type from API response
+	if groupTypeRaw, ok := result["group_type"]; ok && groupTypeRaw != nil {
+		if groupTypeSlice, ok := groupTypeRaw.([]any); ok {
+			ids := make([]string, 0, len(groupTypeSlice))
+			for _, v := range groupTypeSlice {
+				if s, ok := v.(string); ok {
+					ids = append(ids, s)
+				}
+			}
+			names := convertGroupTypeIDsToNames(ids)
+			groupTypeList, diags := types.ListValueFrom(ctx, types.StringType, names)
+			resp.Diagnostics.Append(diags...)
+			if !resp.Diagnostics.HasError() {
+				plan.GroupType = groupTypeList
+			}
+		}
+	}
+
+	if hidden, ok := GetBool(result, "is_hidden"); ok {
+		plan.IsHidden = types.BoolValue(hidden)
+	}
+
+	if reserved, ok := GetBool(result, "is_reserved"); ok {
+		plan.IsReserved = types.BoolValue(reserved)
+	}
+
+	if frontendTitle, ok := GetString(result, "frontend_title"); ok && frontendTitle != "" {
+		plan.FrontendTitle = types.StringValue(frontendTitle)
+	} else {
+		plan.FrontendTitle = types.StringNull()
+	}
+
+	if frontendDesc, ok := GetString(result, "frontend_description"); ok && frontendDesc != "" {
+		plan.FrontendDescription = types.StringValue(frontendDesc)
+	} else {
+		plan.FrontendDescription = types.StringNull()
+	}
+
+	// Handle parents from API response
+	if parentsRaw, ok := result["parents"]; ok && parentsRaw != nil {
+		if parentsSlice, ok := parentsRaw.([]any); ok {
+			parentIDs := make([]int64, 0, len(parentsSlice))
+			for _, v := range parentsSlice {
+				if id, ok := v.(float64); ok {
+					parentIDs = append(parentIDs, int64(id))
+				} else if id, ok := v.(int64); ok {
+					parentIDs = append(parentIDs, id)
+				}
+			}
+			if len(parentIDs) > 0 {
+				parentsList, diags := types.ListValueFrom(ctx, types.Int64Type, parentIDs)
+				resp.Diagnostics.Append(diags...)
+				if !resp.Diagnostics.HasError() {
+					plan.Parents = parentsList
+				}
+			}
+		}
 	}
 
 	tflog.Debug(ctx, "Updated group", map[string]any{

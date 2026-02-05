@@ -31,13 +31,15 @@ type ACLResource struct {
 type ACLResourceModel struct {
 	ID          types.Int64  `tfsdk:"id"`
 	Name        types.String `tfsdk:"name"`
+	Deny        types.Bool   `tfsdk:"deny"`
 	EntityTable types.String `tfsdk:"entity_table"`
 	EntityID    types.Int64  `tfsdk:"entity_id"`
 	Operation   types.String `tfsdk:"operation"`
 	ObjectTable types.String `tfsdk:"object_table"`
 	ObjectID    types.Int64  `tfsdk:"object_id"`
+	AclTable    types.String `tfsdk:"acl_table"`
+	AclID       types.Int64  `tfsdk:"acl_id"`
 	IsActive    types.Bool   `tfsdk:"is_active"`
-	Deny        types.Bool   `tfsdk:"deny"`
 	Priority    types.Int64  `tfsdk:"priority"`
 }
 
@@ -98,6 +100,14 @@ func (r *ACLResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				Computed:    true,
 				Default:     booldefault.StaticBool(false),
 			},
+			"acl_table": schema.StringAttribute{
+				Description: "The ACL table for nested/linked ACLs.",
+				Optional:    true,
+			},
+			"acl_id": schema.Int64Attribute{
+				Description: "The ID of a linked ACL rule.",
+				Optional:    true,
+			},
 			"priority": schema.Int64Attribute{
 				Description: "The priority of the ACL rule (higher priority rules are evaluated first).",
 				Optional:    true,
@@ -152,6 +162,14 @@ func (r *ACLResource) Create(ctx context.Context, req resource.CreateRequest, re
 		values["object_id"] = plan.ObjectID.ValueInt64()
 	}
 
+	if !plan.AclTable.IsNull() {
+		values["acl_table"] = plan.AclTable.ValueString()
+	}
+
+	if !plan.AclID.IsNull() {
+		values["acl_id"] = plan.AclID.ValueInt64()
+	}
+
 	if !plan.Priority.IsNull() {
 		values["priority"] = plan.Priority.ValueInt64()
 	}
@@ -195,6 +213,18 @@ func (r *ACLResource) Create(ctx context.Context, req resource.CreateRequest, re
 		plan.ObjectID = types.Int64Value(objectID)
 	} else {
 		plan.ObjectID = types.Int64Null()
+	}
+
+	if aclTable, ok := GetString(result, "acl_table"); ok && aclTable != "" {
+		plan.AclTable = types.StringValue(aclTable)
+	} else {
+		plan.AclTable = types.StringNull()
+	}
+
+	if aclID, ok := GetInt64(result, "acl_id"); ok {
+		plan.AclID = types.Int64Value(aclID)
+	} else {
+		plan.AclID = types.Int64Null()
 	}
 
 	if active, ok := GetBool(result, "is_active"); ok {
@@ -265,6 +295,18 @@ func (r *ACLResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 		state.ObjectID = types.Int64Null()
 	}
 
+	if aclTable, ok := GetString(result, "acl_table"); ok && aclTable != "" {
+		state.AclTable = types.StringValue(aclTable)
+	} else {
+		state.AclTable = types.StringNull()
+	}
+
+	if aclID, ok := GetInt64(result, "acl_id"); ok {
+		state.AclID = types.Int64Value(aclID)
+	} else {
+		state.AclID = types.Int64Null()
+	}
+
 	if active, ok := GetBool(result, "is_active"); ok {
 		state.IsActive = types.BoolValue(active)
 	}
@@ -317,6 +359,18 @@ func (r *ACLResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		values["object_id"] = nil
 	}
 
+	if !plan.AclTable.IsNull() {
+		values["acl_table"] = plan.AclTable.ValueString()
+	} else {
+		values["acl_table"] = nil
+	}
+
+	if !plan.AclID.IsNull() {
+		values["acl_id"] = plan.AclID.ValueInt64()
+	} else {
+		values["acl_id"] = nil
+	}
+
 	if !plan.Priority.IsNull() {
 		values["priority"] = plan.Priority.ValueInt64()
 	}
@@ -358,6 +412,18 @@ func (r *ACLResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		plan.ObjectID = types.Int64Value(objectID)
 	} else {
 		plan.ObjectID = types.Int64Null()
+	}
+
+	if aclTable, ok := GetString(result, "acl_table"); ok && aclTable != "" {
+		plan.AclTable = types.StringValue(aclTable)
+	} else {
+		plan.AclTable = types.StringNull()
+	}
+
+	if aclID, ok := GetInt64(result, "acl_id"); ok {
+		plan.AclID = types.Int64Value(aclID)
+	} else {
+		plan.AclID = types.Int64Null()
 	}
 
 	if active, ok := GetBool(result, "is_active"); ok {
