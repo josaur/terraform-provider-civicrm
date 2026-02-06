@@ -31,26 +31,26 @@ type CustomGroupResource struct {
 }
 
 type CustomGroupResourceModel struct {
-	ID                        types.Int64  `tfsdk:"id"`
-	Name                      types.String `tfsdk:"name"`
-	Title                     types.String `tfsdk:"title"`
-	Extends                   types.String `tfsdk:"extends"`
-	ExtendsEntityColumnID     types.Int64  `tfsdk:"extends_entity_column_id"`
-	ExtendsEntityColumnValue  types.List   `tfsdk:"extends_entity_column_value"`
-	Style                     types.String `tfsdk:"style"`
-	CollapseDisplay           types.Bool   `tfsdk:"collapse_display"`
-	HelpPre                   types.String `tfsdk:"help_pre"`
-	HelpPost                  types.String `tfsdk:"help_post"`
-	Weight                    types.Int64  `tfsdk:"weight"`
-	IsActive                  types.Bool   `tfsdk:"is_active"`
-	TableName                 types.String `tfsdk:"table_name"`
-	IsMultiple                types.Bool   `tfsdk:"is_multiple"`
-	MinMultiple               types.Int64  `tfsdk:"min_multiple"`
-	MaxMultiple               types.Int64  `tfsdk:"max_multiple"`
-	CollapseAdvDisplay        types.Bool   `tfsdk:"collapse_adv_display"`
-	IsReserved                types.Bool   `tfsdk:"is_reserved"`
-	IsPublic                  types.Bool   `tfsdk:"is_public"`
-	Icon                      types.String `tfsdk:"icon"`
+	ID                       types.Int64  `tfsdk:"id"`
+	Name                     types.String `tfsdk:"name"`
+	Title                    types.String `tfsdk:"title"`
+	Extends                  types.String `tfsdk:"extends"`
+	ExtendsEntityColumnID    types.Int64  `tfsdk:"extends_entity_column_id"`
+	ExtendsEntityColumnValue types.List   `tfsdk:"extends_entity_column_value"`
+	Style                    types.String `tfsdk:"style"`
+	CollapseDisplay          types.Bool   `tfsdk:"collapse_display"`
+	HelpPre                  types.String `tfsdk:"help_pre"`
+	HelpPost                 types.String `tfsdk:"help_post"`
+	Weight                   types.Int64  `tfsdk:"weight"`
+	IsActive                 types.Bool   `tfsdk:"is_active"`
+	TableName                types.String `tfsdk:"table_name"`
+	IsMultiple               types.Bool   `tfsdk:"is_multiple"`
+	MinMultiple              types.Int64  `tfsdk:"min_multiple"`
+	MaxMultiple              types.Int64  `tfsdk:"max_multiple"`
+	CollapseAdvDisplay       types.Bool   `tfsdk:"collapse_adv_display"`
+	IsReserved               types.Bool   `tfsdk:"is_reserved"`
+	IsPublic                 types.Bool   `tfsdk:"is_public"`
+	Icon                     types.String `tfsdk:"icon"`
 }
 
 func NewCustomGroupResource() resource.Resource {

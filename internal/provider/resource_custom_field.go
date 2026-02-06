@@ -30,36 +30,36 @@ type CustomFieldResource struct {
 }
 
 type CustomFieldResourceModel struct {
-	ID              types.Int64  `tfsdk:"id"`
-	CustomGroupID   types.Int64  `tfsdk:"custom_group_id"`
-	Name            types.String `tfsdk:"name"`
-	Label           types.String `tfsdk:"label"`
-	DataType        types.String `tfsdk:"data_type"`
-	HtmlType        types.String `tfsdk:"html_type"`
-	DefaultValue    types.String `tfsdk:"default_value"`
-	IsRequired      types.Bool   `tfsdk:"is_required"`
-	IsSearchable    types.Bool   `tfsdk:"is_searchable"`
-	IsSearchRange   types.Bool   `tfsdk:"is_search_range"`
-	Weight          types.Int64  `tfsdk:"weight"`
-	HelpPre         types.String `tfsdk:"help_pre"`
-	HelpPost        types.String `tfsdk:"help_post"`
-	Attributes      types.String `tfsdk:"attributes"`
-	IsActive        types.Bool   `tfsdk:"is_active"`
-	IsView          types.Bool   `tfsdk:"is_view"`
-	OptionsPerLine  types.Int64  `tfsdk:"options_per_line"`
-	TextLength      types.Int64  `tfsdk:"text_length"`
-	StartDateYears  types.Int64  `tfsdk:"start_date_years"`
-	EndDateYears    types.Int64  `tfsdk:"end_date_years"`
-	DateFormat      types.String `tfsdk:"date_format"`
-	TimeFormat      types.Int64  `tfsdk:"time_format"`
-	NoteColumns     types.Int64  `tfsdk:"note_columns"`
-	NoteRows        types.Int64  `tfsdk:"note_rows"`
-	ColumnName      types.String `tfsdk:"column_name"`
-	OptionGroupID   types.Int64  `tfsdk:"option_group_id"`
-	Serialize       types.Int64  `tfsdk:"serialize"`
-	Filter          types.String `tfsdk:"filter"`
-	InSelector      types.Bool   `tfsdk:"in_selector"`
-	FkEntity        types.String `tfsdk:"fk_entity"`
+	ID               types.Int64  `tfsdk:"id"`
+	CustomGroupID    types.Int64  `tfsdk:"custom_group_id"`
+	Name             types.String `tfsdk:"name"`
+	Label            types.String `tfsdk:"label"`
+	DataType         types.String `tfsdk:"data_type"`
+	HtmlType         types.String `tfsdk:"html_type"`
+	DefaultValue     types.String `tfsdk:"default_value"`
+	IsRequired       types.Bool   `tfsdk:"is_required"`
+	IsSearchable     types.Bool   `tfsdk:"is_searchable"`
+	IsSearchRange    types.Bool   `tfsdk:"is_search_range"`
+	Weight           types.Int64  `tfsdk:"weight"`
+	HelpPre          types.String `tfsdk:"help_pre"`
+	HelpPost         types.String `tfsdk:"help_post"`
+	Attributes       types.String `tfsdk:"attributes"`
+	IsActive         types.Bool   `tfsdk:"is_active"`
+	IsView           types.Bool   `tfsdk:"is_view"`
+	OptionsPerLine   types.Int64  `tfsdk:"options_per_line"`
+	TextLength       types.Int64  `tfsdk:"text_length"`
+	StartDateYears   types.Int64  `tfsdk:"start_date_years"`
+	EndDateYears     types.Int64  `tfsdk:"end_date_years"`
+	DateFormat       types.String `tfsdk:"date_format"`
+	TimeFormat       types.Int64  `tfsdk:"time_format"`
+	NoteColumns      types.Int64  `tfsdk:"note_columns"`
+	NoteRows         types.Int64  `tfsdk:"note_rows"`
+	ColumnName       types.String `tfsdk:"column_name"`
+	OptionGroupID    types.Int64  `tfsdk:"option_group_id"`
+	Serialize        types.Int64  `tfsdk:"serialize"`
+	Filter           types.String `tfsdk:"filter"`
+	InSelector       types.Bool   `tfsdk:"in_selector"`
+	FkEntity         types.String `tfsdk:"fk_entity"`
 	FkEntityOnDelete types.String `tfsdk:"fk_entity_on_delete"`
 }
 
@@ -266,22 +266,22 @@ func (r *CustomFieldResource) Create(ctx context.Context, req resource.CreateReq
 
 	// Build values for API call
 	values := map[string]any{
-		"custom_group_id":  plan.CustomGroupID.ValueInt64(),
-		"name":             plan.Name.ValueString(),
-		"label":            plan.Label.ValueString(),
-		"data_type":        plan.DataType.ValueString(),
-		"html_type":        plan.HtmlType.ValueString(),
-		"is_required":      plan.IsRequired.ValueBool(),
-		"is_searchable":    plan.IsSearchable.ValueBool(),
-		"is_search_range":  plan.IsSearchRange.ValueBool(),
-		"weight":           plan.Weight.ValueInt64(),
-		"is_active":        plan.IsActive.ValueBool(),
-		"is_view":          plan.IsView.ValueBool(),
-		"text_length":      plan.TextLength.ValueInt64(),
-		"note_columns":     plan.NoteColumns.ValueInt64(),
-		"note_rows":        plan.NoteRows.ValueInt64(),
-		"serialize":        plan.Serialize.ValueInt64(),
-		"in_selector":      plan.InSelector.ValueBool(),
+		"custom_group_id":     plan.CustomGroupID.ValueInt64(),
+		"name":                plan.Name.ValueString(),
+		"label":               plan.Label.ValueString(),
+		"data_type":           plan.DataType.ValueString(),
+		"html_type":           plan.HtmlType.ValueString(),
+		"is_required":         plan.IsRequired.ValueBool(),
+		"is_searchable":       plan.IsSearchable.ValueBool(),
+		"is_search_range":     plan.IsSearchRange.ValueBool(),
+		"weight":              plan.Weight.ValueInt64(),
+		"is_active":           plan.IsActive.ValueBool(),
+		"is_view":             plan.IsView.ValueBool(),
+		"text_length":         plan.TextLength.ValueInt64(),
+		"note_columns":        plan.NoteColumns.ValueInt64(),
+		"note_rows":           plan.NoteRows.ValueInt64(),
+		"serialize":           plan.Serialize.ValueInt64(),
+		"in_selector":         plan.InSelector.ValueBool(),
 		"fk_entity_on_delete": plan.FkEntityOnDelete.ValueString(),
 	}
 
@@ -407,22 +407,22 @@ func (r *CustomFieldResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Build values for API call
 	values := map[string]any{
-		"custom_group_id":  plan.CustomGroupID.ValueInt64(),
-		"name":             plan.Name.ValueString(),
-		"label":            plan.Label.ValueString(),
-		"data_type":        plan.DataType.ValueString(),
-		"html_type":        plan.HtmlType.ValueString(),
-		"is_required":      plan.IsRequired.ValueBool(),
-		"is_searchable":    plan.IsSearchable.ValueBool(),
-		"is_search_range":  plan.IsSearchRange.ValueBool(),
-		"weight":           plan.Weight.ValueInt64(),
-		"is_active":        plan.IsActive.ValueBool(),
-		"is_view":          plan.IsView.ValueBool(),
-		"text_length":      plan.TextLength.ValueInt64(),
-		"note_columns":     plan.NoteColumns.ValueInt64(),
-		"note_rows":        plan.NoteRows.ValueInt64(),
-		"serialize":        plan.Serialize.ValueInt64(),
-		"in_selector":      plan.InSelector.ValueBool(),
+		"custom_group_id":     plan.CustomGroupID.ValueInt64(),
+		"name":                plan.Name.ValueString(),
+		"label":               plan.Label.ValueString(),
+		"data_type":           plan.DataType.ValueString(),
+		"html_type":           plan.HtmlType.ValueString(),
+		"is_required":         plan.IsRequired.ValueBool(),
+		"is_searchable":       plan.IsSearchable.ValueBool(),
+		"is_search_range":     plan.IsSearchRange.ValueBool(),
+		"weight":              plan.Weight.ValueInt64(),
+		"is_active":           plan.IsActive.ValueBool(),
+		"is_view":             plan.IsView.ValueBool(),
+		"text_length":         plan.TextLength.ValueInt64(),
+		"note_columns":        plan.NoteColumns.ValueInt64(),
+		"note_rows":           plan.NoteRows.ValueInt64(),
+		"serialize":           plan.Serialize.ValueInt64(),
+		"in_selector":         plan.InSelector.ValueBool(),
 		"fk_entity_on_delete": plan.FkEntityOnDelete.ValueString(),
 	}
 
