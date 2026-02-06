@@ -117,10 +117,20 @@ func (r *ACLRoleResource) Create(ctx context.Context, req resource.CreateRequest
 		"label": plan.Label.ValueString(),
 	})
 
+	// Look up the acl_role option group ID
+	optionGroupID, err := r.client.GetOptionGroupID("acl_role")
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error looking up option group",
+			"Could not find acl_role option group: "+err.Error(),
+		)
+		return
+	}
+
 	// Build values for API call
 	// ACL Roles are stored as OptionValues in the acl_role option group
 	values := map[string]any{
-		"option_group_id": "acl_role",
+		"option_group_id": optionGroupID,
 		"name":            plan.Name.ValueString(),
 		"label":           plan.Label.ValueString(),
 		"is_active":       plan.IsActive.ValueBool(),

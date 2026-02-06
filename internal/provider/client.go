@@ -263,3 +263,26 @@ func GetBool(m map[string]any, key string) (bool, bool) {
 		return false, false
 	}
 }
+
+// GetOptionGroupID retrieves the numeric ID of an option group by name
+func (c *Client) GetOptionGroupID(name string) (int64, error) {
+	where := [][]any{
+		{"name", "=", name},
+	}
+
+	results, err := c.Get("OptionGroup", where, []string{"id"})
+	if err != nil {
+		return 0, fmt.Errorf("failed to look up option group '%s': %w", name, err)
+	}
+
+	if len(results) == 0 {
+		return 0, fmt.Errorf("option group '%s' not found", name)
+	}
+
+	id, ok := GetInt64(results[0], "id")
+	if !ok {
+		return 0, fmt.Errorf("option group '%s' has no valid id", name)
+	}
+
+	return id, nil
+}
