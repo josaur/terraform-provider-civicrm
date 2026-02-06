@@ -15,7 +15,7 @@ The CiviCRM provider enables Terraform to manage [CiviCRM](https://civicrm.org/)
 terraform {
   required_providers {
     civicrm = {
-      source  = "Caritas-Deutschland-Digitallabor/civicrm"
+      source  = "josaur/civicrm"
       version = "~> 0.1"
     }
   }
