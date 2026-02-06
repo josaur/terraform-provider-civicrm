@@ -27,29 +27,29 @@ type MailSettingsResource struct {
 }
 
 type MailSettingsResourceModel struct {
-	ID                                   types.Int64  `tfsdk:"id"`
-	DomainID                             types.Int64  `tfsdk:"domain_id"`
-	Name                                 types.String `tfsdk:"name"`
-	IsDefault                            types.Bool   `tfsdk:"is_default"`
-	Domain                               types.String `tfsdk:"domain"`
-	Localpart                            types.String `tfsdk:"localpart"`
-	ReturnPath                           types.String `tfsdk:"return_path"`
-	Protocol                             types.String `tfsdk:"protocol"`
-	Server                               types.String `tfsdk:"server"`
-	Port                                 types.Int64  `tfsdk:"port"`
-	Username                             types.String `tfsdk:"username"`
-	Password                             types.String `tfsdk:"password"`
-	IsSSL                                types.Bool   `tfsdk:"is_ssl"`
-	Source                               types.String `tfsdk:"source"`
-	ActivityStatus                       types.String `tfsdk:"activity_status"`
-	IsNonCaseEmailSkipped                types.Bool   `tfsdk:"is_non_case_email_skipped"`
-	IsContactCreationDisabledIfNoMatch   types.Bool   `tfsdk:"is_contact_creation_disabled_if_no_match"`
-	IsActive                             types.Bool   `tfsdk:"is_active"`
-	ActivityTypeID                       types.Int64  `tfsdk:"activity_type_id"`
-	CampaignID                           types.Int64  `tfsdk:"campaign_id"`
-	ActivitySource                       types.String `tfsdk:"activity_source"`
-	ActivityTargets                      types.String `tfsdk:"activity_targets"`
-	ActivityAssignees                    types.String `tfsdk:"activity_assignees"`
+	ID                                 types.Int64  `tfsdk:"id"`
+	DomainID                           types.Int64  `tfsdk:"domain_id"`
+	Name                               types.String `tfsdk:"name"`
+	IsDefault                          types.Bool   `tfsdk:"is_default"`
+	Domain                             types.String `tfsdk:"domain"`
+	Localpart                          types.String `tfsdk:"localpart"`
+	ReturnPath                         types.String `tfsdk:"return_path"`
+	Protocol                           types.String `tfsdk:"protocol"`
+	Server                             types.String `tfsdk:"server"`
+	Port                               types.Int64  `tfsdk:"port"`
+	Username                           types.String `tfsdk:"username"`
+	Password                           types.String `tfsdk:"password"`
+	IsSSL                              types.Bool   `tfsdk:"is_ssl"`
+	Source                             types.String `tfsdk:"source"`
+	ActivityStatus                     types.String `tfsdk:"activity_status"`
+	IsNonCaseEmailSkipped              types.Bool   `tfsdk:"is_non_case_email_skipped"`
+	IsContactCreationDisabledIfNoMatch types.Bool   `tfsdk:"is_contact_creation_disabled_if_no_match"`
+	IsActive                           types.Bool   `tfsdk:"is_active"`
+	ActivityTypeID                     types.Int64  `tfsdk:"activity_type_id"`
+	CampaignID                         types.Int64  `tfsdk:"campaign_id"`
+	ActivitySource                     types.String `tfsdk:"activity_source"`
+	ActivityTargets                    types.String `tfsdk:"activity_targets"`
+	ActivityAssignees                  types.String `tfsdk:"activity_assignees"`
 }
 
 func NewMailSettingsResource() resource.Resource {
@@ -206,10 +206,10 @@ func (r *MailSettingsResource) Create(ctx context.Context, req resource.CreateRe
 
 	// Build values for API call
 	values := map[string]any{
-		"name":                       plan.Name.ValueString(),
-		"is_default":                 plan.IsDefault.ValueBool(),
-		"is_ssl":                     plan.IsSSL.ValueBool(),
-		"is_non_case_email_skipped":  plan.IsNonCaseEmailSkipped.ValueBool(),
+		"name":                      plan.Name.ValueString(),
+		"is_default":                plan.IsDefault.ValueBool(),
+		"is_ssl":                    plan.IsSSL.ValueBool(),
+		"is_non_case_email_skipped": plan.IsNonCaseEmailSkipped.ValueBool(),
 		"is_contact_creation_disabled_if_no_match": plan.IsContactCreationDisabledIfNoMatch.ValueBool(),
 		"is_active": plan.IsActive.ValueBool(),
 	}
@@ -348,10 +348,10 @@ func (r *MailSettingsResource) Update(ctx context.Context, req resource.UpdateRe
 
 	// Build values for API call
 	values := map[string]any{
-		"name":                       plan.Name.ValueString(),
-		"is_default":                 plan.IsDefault.ValueBool(),
-		"is_ssl":                     plan.IsSSL.ValueBool(),
-		"is_non_case_email_skipped":  plan.IsNonCaseEmailSkipped.ValueBool(),
+		"name":                      plan.Name.ValueString(),
+		"is_default":                plan.IsDefault.ValueBool(),
+		"is_ssl":                    plan.IsSSL.ValueBool(),
+		"is_non_case_email_skipped": plan.IsNonCaseEmailSkipped.ValueBool(),
 		"is_contact_creation_disabled_if_no_match": plan.IsContactCreationDisabledIfNoMatch.ValueBool(),
 		"is_active": plan.IsActive.ValueBool(),
 	}

@@ -137,10 +137,12 @@ func (r *GroupResource) Schema(ctx context.Context, req resource.SchemaRequest, 
 			"frontend_title": schema.StringAttribute{
 				Description: "The public title of the group shown on frontend pages.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"frontend_description": schema.StringAttribute{
 				Description: "The public description of the group shown on frontend pages.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"parents": schema.ListAttribute{
 				Description: "List of parent group IDs for nested groups.",

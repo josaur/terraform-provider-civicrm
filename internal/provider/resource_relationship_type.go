@@ -27,18 +27,18 @@ type RelationshipTypeResource struct {
 }
 
 type RelationshipTypeResourceModel struct {
-	ID               types.Int64  `tfsdk:"id"`
-	NameAB           types.String `tfsdk:"name_a_b"`
-	LabelAB          types.String `tfsdk:"label_a_b"`
-	NameBA           types.String `tfsdk:"name_b_a"`
-	LabelBA          types.String `tfsdk:"label_b_a"`
-	Description      types.String `tfsdk:"description"`
-	ContactTypeA     types.String `tfsdk:"contact_type_a"`
-	ContactTypeB     types.String `tfsdk:"contact_type_b"`
-	ContactSubTypeA  types.String `tfsdk:"contact_sub_type_a"`
-	ContactSubTypeB  types.String `tfsdk:"contact_sub_type_b"`
-	IsReserved       types.Bool   `tfsdk:"is_reserved"`
-	IsActive         types.Bool   `tfsdk:"is_active"`
+	ID              types.Int64  `tfsdk:"id"`
+	NameAB          types.String `tfsdk:"name_a_b"`
+	LabelAB         types.String `tfsdk:"label_a_b"`
+	NameBA          types.String `tfsdk:"name_b_a"`
+	LabelBA         types.String `tfsdk:"label_b_a"`
+	Description     types.String `tfsdk:"description"`
+	ContactTypeA    types.String `tfsdk:"contact_type_a"`
+	ContactTypeB    types.String `tfsdk:"contact_type_b"`
+	ContactSubTypeA types.String `tfsdk:"contact_sub_type_a"`
+	ContactSubTypeB types.String `tfsdk:"contact_sub_type_b"`
+	IsReserved      types.Bool   `tfsdk:"is_reserved"`
+	IsActive        types.Bool   `tfsdk:"is_active"`
 }
 
 func NewRelationshipTypeResource() resource.Resource {
