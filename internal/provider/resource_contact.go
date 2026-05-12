@@ -138,28 +138,28 @@ func (r *ContactResource) Create(ctx context.Context, req resource.CreateRequest
 		"is_active":    plan.IsActive.ValueBool(),
 	}
 
-	if !plan.FirstName.IsNull() {
+	if !plan.FirstName.IsNull() && !plan.FirstName.IsUnknown() {
 		values["first_name"] = plan.FirstName.ValueString()
 	}
-	if !plan.LastName.IsNull() {
+	if !plan.LastName.IsNull() && !plan.LastName.IsUnknown() {
 		values["last_name"] = plan.LastName.ValueString()
 	}
-	if !plan.OrganizationName.IsNull() {
+	if !plan.OrganizationName.IsNull() && !plan.OrganizationName.IsUnknown() {
 		values["organization_name"] = plan.OrganizationName.ValueString()
 	}
-	if !plan.HouseholdName.IsNull() {
+	if !plan.HouseholdName.IsNull() && !plan.HouseholdName.IsUnknown() {
 		values["household_name"] = plan.HouseholdName.ValueString()
 	}
-	if !plan.JobTitle.IsNull() {
+	if !plan.JobTitle.IsNull() && !plan.JobTitle.IsUnknown() {
 		values["job_title"] = plan.JobTitle.ValueString()
 	}
-	if !plan.EmployerID.IsNull() {
+	if !plan.EmployerID.IsNull() && !plan.EmployerID.IsUnknown() {
 		values["employer_id"] = plan.EmployerID.ValueInt64()
 	}
-	if !plan.ExternalIdentifier.IsNull() {
+	if !plan.ExternalIdentifier.IsNull() && !plan.ExternalIdentifier.IsUnknown() {
 		values["external_identifier"] = plan.ExternalIdentifier.ValueString()
 	}
-	if !plan.ContactSubType.IsNull() {
+	if !plan.ContactSubType.IsNull() && !plan.ContactSubType.IsUnknown() {
 		values["contact_sub_type"] = plan.ContactSubType.ValueString()
 	}
 
@@ -209,48 +209,48 @@ func (r *ContactResource) Update(ctx context.Context, req resource.UpdateRequest
 		"is_active": plan.IsActive.ValueBool(),
 	}
 
-	if !plan.FirstName.IsNull() {
+	if !plan.FirstName.IsNull() && !plan.FirstName.IsUnknown() {
 		values["first_name"] = plan.FirstName.ValueString()
 	} else {
 		values["first_name"] = nil
 	}
-	if !plan.LastName.IsNull() {
+	if !plan.LastName.IsNull() && !plan.LastName.IsUnknown() {
 		values["last_name"] = plan.LastName.ValueString()
 	} else {
 		values["last_name"] = nil
 	}
-	if !plan.OrganizationName.IsNull() {
+	if !plan.OrganizationName.IsNull() && !plan.OrganizationName.IsUnknown() {
 		values["organization_name"] = plan.OrganizationName.ValueString()
 	} else {
 		values["organization_name"] = nil
 	}
-	if !plan.HouseholdName.IsNull() {
+	if !plan.HouseholdName.IsNull() && !plan.HouseholdName.IsUnknown() {
 		values["household_name"] = plan.HouseholdName.ValueString()
 	} else {
 		values["household_name"] = nil
 	}
-	if !plan.JobTitle.IsNull() {
+	if !plan.JobTitle.IsNull() && !plan.JobTitle.IsUnknown() {
 		values["job_title"] = plan.JobTitle.ValueString()
 	} else {
 		values["job_title"] = nil
 	}
-	if !plan.EmployerID.IsNull() {
+	if !plan.EmployerID.IsNull() && !plan.EmployerID.IsUnknown() {
 		values["employer_id"] = plan.EmployerID.ValueInt64()
 	} else {
 		values["employer_id"] = nil
 	}
-	if !plan.ExternalIdentifier.IsNull() {
+	if !plan.ExternalIdentifier.IsNull() && !plan.ExternalIdentifier.IsUnknown() {
 		values["external_identifier"] = plan.ExternalIdentifier.ValueString()
 	} else {
 		values["external_identifier"] = nil
 	}
-	if !plan.ContactSubType.IsNull() {
+	if !plan.ContactSubType.IsNull() && !plan.ContactSubType.IsUnknown() {
 		values["contact_sub_type"] = plan.ContactSubType.ValueString()
 	} else {
 		values["contact_sub_type"] = nil
 	}
 
-	result, err := r.client.Update("Contact", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("Contact", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating contact",
 			"Could not update contact ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error())
@@ -258,6 +258,15 @@ func (r *ContactResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("Contact", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Contact after update",
+			"Could not re-read Contact ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResponseToModel(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

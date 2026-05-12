@@ -110,10 +110,10 @@ func (r *CiviRulesRuleActionResource) Create(ctx context.Context, req resource.C
 		"action_id": plan.ActionID.ValueInt64(),
 		"is_active": plan.IsActive.ValueBool(),
 	}
-	if !plan.ActionParams.IsNull() && plan.ActionParams.ValueString() != "" {
+	if !plan.ActionParams.IsNull() && !plan.ActionParams.IsUnknown() && plan.ActionParams.ValueString() != "" {
 		values["action_params"] = plan.ActionParams.ValueString()
 	}
-	if !plan.Delay.IsNull() && plan.Delay.ValueString() != "" {
+	if !plan.Delay.IsNull() && !plan.Delay.IsUnknown() && plan.Delay.ValueString() != "" {
 		values["delay"] = plan.Delay.ValueString()
 	}
 
@@ -123,6 +123,13 @@ func (r *CiviRulesRuleActionResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("CiviRulesRuleAction", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -162,18 +169,18 @@ func (r *CiviRulesRuleActionResource) Update(ctx context.Context, req resource.U
 		"action_id": plan.ActionID.ValueInt64(),
 		"is_active": plan.IsActive.ValueBool(),
 	}
-	if !plan.ActionParams.IsNull() && plan.ActionParams.ValueString() != "" {
+	if !plan.ActionParams.IsNull() && !plan.ActionParams.IsUnknown() && plan.ActionParams.ValueString() != "" {
 		values["action_params"] = plan.ActionParams.ValueString()
 	} else {
 		values["action_params"] = nil
 	}
-	if !plan.Delay.IsNull() && plan.Delay.ValueString() != "" {
+	if !plan.Delay.IsNull() && !plan.Delay.IsUnknown() && plan.Delay.ValueString() != "" {
 		values["delay"] = plan.Delay.ValueString()
 	} else {
 		values["delay"] = nil
 	}
 
-	result, err := r.client.Update("CiviRulesRuleAction", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("CiviRulesRuleAction", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating CiviRulesRuleAction",
 			"Could not update CiviRulesRuleAction ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error())
@@ -181,6 +188,15 @@ func (r *CiviRulesRuleActionResource) Update(ctx context.Context, req resource.U
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("CiviRulesRuleAction", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading CiviRulesRuleAction after update",
+			"Could not re-read CiviRulesRuleAction ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

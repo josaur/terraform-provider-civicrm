@@ -131,15 +131,15 @@ func (r *CaseTypeResource) Create(ctx context.Context, req resource.CreateReques
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
 
-	if !plan.Definition.IsNull() && plan.Definition.ValueString() != "" {
+	if !plan.Definition.IsNull() && !plan.Definition.IsUnknown() && plan.Definition.ValueString() != "" {
 		var def any
 		if err := json.Unmarshal([]byte(plan.Definition.ValueString()), &def); err != nil {
 			resp.Diagnostics.AddError(
@@ -168,6 +168,13 @@ func (r *CaseTypeResource) Create(ctx context.Context, req resource.CreateReques
 		}
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("CaseType", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Created CaseType", map[string]any{"id": plan.ID.ValueInt64()})
@@ -225,17 +232,17 @@ func (r *CaseTypeResource) Update(ctx context.Context, req resource.UpdateReques
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
 
-	if !plan.Definition.IsNull() && plan.Definition.ValueString() != "" {
+	if !plan.Definition.IsNull() && !plan.Definition.IsUnknown() && plan.Definition.ValueString() != "" {
 		var def any
 		if err := json.Unmarshal([]byte(plan.Definition.ValueString()), &def); err != nil {
 			resp.Diagnostics.AddError(
@@ -247,7 +254,7 @@ func (r *CaseTypeResource) Update(ctx context.Context, req resource.UpdateReques
 		values["definition"] = def
 	}
 
-	result, err := r.client.Update("CaseType", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("CaseType", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating CaseType",
@@ -256,12 +263,16 @@ func (r *CaseTypeResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Re-read to get canonical JSON form (Update response returns XML like Create).
-	if freshResult, err := r.client.GetByID("CaseType", state.ID.ValueInt64(), nil); err == nil {
-		result = freshResult
-	}
-
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("CaseType", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading CaseType after update",
+			"Could not re-read CaseType ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Updated CaseType", map[string]any{"id": plan.ID.ValueInt64()})

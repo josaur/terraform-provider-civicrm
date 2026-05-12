@@ -193,11 +193,11 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.GroupType.IsNull() {
+	if !plan.GroupType.IsNull() && !plan.GroupType.IsUnknown() {
 		var groupTypes []string
 		diags = plan.GroupType.ElementsAs(ctx, &groupTypes, false)
 		resp.Diagnostics.Append(diags...)
@@ -208,15 +208,15 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 		values["group_type"] = convertGroupTypesToIDs(groupTypes)
 	}
 
-	if !plan.FrontendTitle.IsNull() {
+	if !plan.FrontendTitle.IsNull() && !plan.FrontendTitle.IsUnknown() {
 		values["frontend_title"] = plan.FrontendTitle.ValueString()
 	}
 
-	if !plan.FrontendDescription.IsNull() {
+	if !plan.FrontendDescription.IsNull() && !plan.FrontendDescription.IsUnknown() {
 		values["frontend_description"] = plan.FrontendDescription.ValueString()
 	}
 
-	if !plan.Parents.IsNull() {
+	if !plan.Parents.IsNull() && !plan.Parents.IsUnknown() {
 		var parents []int64
 		diags = plan.Parents.ElementsAs(ctx, &parents, false)
 		resp.Diagnostics.Append(diags...)
@@ -239,6 +239,16 @@ func (r *GroupResource) Create(ctx context.Context, req resource.CreateRequest, 
 	// Update state with response
 	if id, ok := GetInt64(result, "id"); ok {
 		plan.ID = types.Int64Value(id)
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	result, err = r.client.GetByID("Group", plan.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Group after create",
+			"Could not re-read after create: "+err.Error(),
+		)
+		return
 	}
 
 	if name, ok := GetString(result, "name"); ok {
@@ -466,13 +476,13 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.GroupType.IsNull() {
+	if !plan.GroupType.IsNull() && !plan.GroupType.IsUnknown() {
 		var groupTypes []string
 		diags = plan.GroupType.ElementsAs(ctx, &groupTypes, false)
 		resp.Diagnostics.Append(diags...)
@@ -483,19 +493,19 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 		values["group_type"] = convertGroupTypesToIDs(groupTypes)
 	}
 
-	if !plan.FrontendTitle.IsNull() {
+	if !plan.FrontendTitle.IsNull() && !plan.FrontendTitle.IsUnknown() {
 		values["frontend_title"] = plan.FrontendTitle.ValueString()
 	} else {
 		values["frontend_title"] = nil
 	}
 
-	if !plan.FrontendDescription.IsNull() {
+	if !plan.FrontendDescription.IsNull() && !plan.FrontendDescription.IsUnknown() {
 		values["frontend_description"] = plan.FrontendDescription.ValueString()
 	} else {
 		values["frontend_description"] = nil
 	}
 
-	if !plan.Parents.IsNull() {
+	if !plan.Parents.IsNull() && !plan.Parents.IsUnknown() {
 		var parents []int64
 		diags = plan.Parents.ElementsAs(ctx, &parents, false)
 		resp.Diagnostics.Append(diags...)
@@ -508,7 +518,7 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 	}
 
 	// Call API
-	result, err := r.client.Update("Group", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("Group", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating group",
@@ -519,6 +529,15 @@ func (r *GroupResource) Update(ctx context.Context, req resource.UpdateRequest, 
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("Group", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Group after update",
+			"Could not re-read Group ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 
 	if name, ok := GetString(result, "name"); ok {
 		plan.Name = types.StringValue(name)

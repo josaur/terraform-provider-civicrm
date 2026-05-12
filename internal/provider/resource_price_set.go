@@ -160,22 +160,22 @@ func (r *PriceSetResource) Create(ctx context.Context, req resource.CreateReques
 		"is_reserved":     plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.DomainID.IsNull() {
+	if !plan.DomainID.IsNull() && !plan.DomainID.IsUnknown() {
 		values["domain_id"] = plan.DomainID.ValueInt64()
 	}
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	}
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	}
-	if !plan.Javascript.IsNull() {
+	if !plan.Javascript.IsNull() && !plan.Javascript.IsUnknown() {
 		values["javascript"] = plan.Javascript.ValueString()
 	}
-	if !plan.FinancialTypeID.IsNull() {
+	if !plan.FinancialTypeID.IsNull() && !plan.FinancialTypeID.IsUnknown() {
 		values["financial_type_id"] = plan.FinancialTypeID.ValueInt64()
 	}
-	if !plan.MinAmount.IsNull() {
+	if !plan.MinAmount.IsNull() && !plan.MinAmount.IsUnknown() {
 		values["min_amount"] = plan.MinAmount.ValueFloat64()
 	}
 
@@ -188,6 +188,13 @@ func (r *PriceSetResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("PriceSet", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Created PriceSet", map[string]any{"id": plan.ID.ValueInt64()})
@@ -247,38 +254,38 @@ func (r *PriceSetResource) Update(ctx context.Context, req resource.UpdateReques
 		"is_reserved":     plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.DomainID.IsNull() {
+	if !plan.DomainID.IsNull() && !plan.DomainID.IsUnknown() {
 		values["domain_id"] = plan.DomainID.ValueInt64()
 	} else {
 		values["domain_id"] = nil
 	}
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	} else {
 		values["help_pre"] = nil
 	}
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	} else {
 		values["help_post"] = nil
 	}
-	if !plan.Javascript.IsNull() {
+	if !plan.Javascript.IsNull() && !plan.Javascript.IsUnknown() {
 		values["javascript"] = plan.Javascript.ValueString()
 	} else {
 		values["javascript"] = nil
 	}
-	if !plan.FinancialTypeID.IsNull() {
+	if !plan.FinancialTypeID.IsNull() && !plan.FinancialTypeID.IsUnknown() {
 		values["financial_type_id"] = plan.FinancialTypeID.ValueInt64()
 	} else {
 		values["financial_type_id"] = nil
 	}
-	if !plan.MinAmount.IsNull() {
+	if !plan.MinAmount.IsNull() && !plan.MinAmount.IsUnknown() {
 		values["min_amount"] = plan.MinAmount.ValueFloat64()
 	} else {
 		values["min_amount"] = nil
 	}
 
-	result, err := r.client.Update("PriceSet", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("PriceSet", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating PriceSet",
@@ -288,6 +295,15 @@ func (r *PriceSetResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("PriceSet", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading PriceSet after update",
+			"Could not re-read PriceSet ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Updated PriceSet", map[string]any{"id": plan.ID.ValueInt64()})
@@ -372,8 +388,18 @@ func (r *PriceSetResource) mapResultToState(result map[string]any, model *PriceS
 		model.Javascript = types.StringNull()
 	}
 
-	if v, ok := GetString(result, "extends"); ok {
-		model.Extends = types.StringValue(v)
+	// CiviCRM returns extends as a JSON array (e.g. ["CiviMember"]) — extract first element
+	if raw, ok := result["extends"]; ok && raw != nil {
+		switch v := raw.(type) {
+		case string:
+			model.Extends = types.StringValue(v)
+		case []any:
+			if len(v) > 0 {
+				if s, ok := v[0].(string); ok {
+					model.Extends = types.StringValue(s)
+				}
+			}
+		}
 	}
 
 	if v, ok := GetInt64(result, "financial_type_id"); ok {
@@ -393,9 +419,13 @@ func (r *PriceSetResource) mapResultToState(result map[string]any, model *PriceS
 	if v, ok := result["min_amount"]; ok && v != nil {
 		switch val := v.(type) {
 		case float64:
-			model.MinAmount = types.Float64Value(val)
+			if val != 0 {
+				model.MinAmount = types.Float64Value(val)
+			} else {
+				model.MinAmount = types.Float64Null()
+			}
 		case string:
-			if f, err := strconv.ParseFloat(val, 64); err == nil {
+			if f, err := strconv.ParseFloat(val, 64); err == nil && f != 0 {
 				model.MinAmount = types.Float64Value(f)
 			} else {
 				model.MinAmount = types.Float64Null()

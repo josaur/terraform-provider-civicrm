@@ -143,13 +143,13 @@ func (r *CaseStatusResource) Create(ctx context.Context, req resource.CreateRequ
 		"is_active":       plan.IsActive.ValueBool(),
 		"is_reserved":     plan.IsReserved.ValueBool(),
 	}
-	if !plan.Grouping.IsNull() && plan.Grouping.ValueString() != "" {
+	if !plan.Grouping.IsNull() && !plan.Grouping.IsUnknown() && plan.Grouping.ValueString() != "" {
 		values["grouping"] = plan.Grouping.ValueString()
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.Value.IsNull() && plan.Value.ValueString() != "" {
+	if !plan.Value.IsNull() && !plan.Value.IsUnknown() && plan.Value.ValueString() != "" {
 		values["value"] = plan.Value.ValueString()
 	}
 
@@ -159,6 +159,13 @@ func (r *CaseStatusResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("OptionValue", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 	tflog.Debug(ctx, "Created CaseStatus", map[string]any{"id": plan.ID.ValueInt64()})
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
@@ -202,19 +209,19 @@ func (r *CaseStatusResource) Update(ctx context.Context, req resource.UpdateRequ
 		"is_active":   plan.IsActive.ValueBool(),
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
-	if !plan.Grouping.IsNull() && plan.Grouping.ValueString() != "" {
+	if !plan.Grouping.IsNull() && !plan.Grouping.IsUnknown() && plan.Grouping.ValueString() != "" {
 		values["grouping"] = plan.Grouping.ValueString()
 	} else {
 		values["grouping"] = nil
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.Value.IsNull() && plan.Value.ValueString() != "" {
+	if !plan.Value.IsNull() && !plan.Value.IsUnknown() && plan.Value.ValueString() != "" {
 		values["value"] = plan.Value.ValueString()
 	}
 
-	result, err := r.client.Update("OptionValue", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("OptionValue", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating CaseStatus",
@@ -224,6 +231,15 @@ func (r *CaseStatusResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("OptionValue", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading OptionValue after update",
+			"Could not re-read OptionValue ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

@@ -134,19 +134,19 @@ func (r *ContactTypeResource) Create(ctx context.Context, req resource.CreateReq
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.ImageURL.IsNull() {
+	if !plan.ImageURL.IsNull() && !plan.ImageURL.IsUnknown() {
 		values["image_URL"] = plan.ImageURL.ValueString()
 	}
 
-	if !plan.Icon.IsNull() {
+	if !plan.Icon.IsNull() && !plan.Icon.IsUnknown() {
 		values["icon"] = plan.Icon.ValueString()
 	}
 
-	if !plan.ParentID.IsNull() {
+	if !plan.ParentID.IsNull() && !plan.ParentID.IsUnknown() {
 		values["parent_id"] = plan.ParentID.ValueInt64()
 	}
 
@@ -158,6 +158,13 @@ func (r *ContactTypeResource) Create(ctx context.Context, req resource.CreateReq
 			"Could not create contact type, unexpected error: "+err.Error(),
 		)
 		return
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("ContactType", createdID, nil); err2 == nil {
+			result = fullResult
+		}
 	}
 
 	// Update state with response
@@ -226,32 +233,32 @@ func (r *ContactTypeResource) Update(ctx context.Context, req resource.UpdateReq
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.ImageURL.IsNull() {
+	if !plan.ImageURL.IsNull() && !plan.ImageURL.IsUnknown() {
 		values["image_URL"] = plan.ImageURL.ValueString()
 	} else {
 		values["image_URL"] = nil
 	}
 
-	if !plan.Icon.IsNull() {
+	if !plan.Icon.IsNull() && !plan.Icon.IsUnknown() {
 		values["icon"] = plan.Icon.ValueString()
 	} else {
 		values["icon"] = nil
 	}
 
-	if !plan.ParentID.IsNull() {
+	if !plan.ParentID.IsNull() && !plan.ParentID.IsUnknown() {
 		values["parent_id"] = plan.ParentID.ValueInt64()
 	} else {
 		values["parent_id"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("ContactType", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("ContactType", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating contact type",
@@ -262,6 +269,15 @@ func (r *ContactTypeResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("ContactType", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading ContactType after update",
+			"Could not re-read ContactType ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResponseToModel(result, &plan)
 
 	tflog.Debug(ctx, "Updated contact type", map[string]any{

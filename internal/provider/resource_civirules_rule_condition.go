@@ -114,7 +114,7 @@ func (r *CiviRulesRuleConditionResource) Create(ctx context.Context, req resourc
 		"is_active":    plan.IsActive.ValueBool(),
 		"negate":       plan.Negate.ValueBool(),
 	}
-	if !plan.ConditionParams.IsNull() && plan.ConditionParams.ValueString() != "" {
+	if !plan.ConditionParams.IsNull() && !plan.ConditionParams.IsUnknown() && plan.ConditionParams.ValueString() != "" {
 		values["condition_params"] = plan.ConditionParams.ValueString()
 	}
 
@@ -124,6 +124,13 @@ func (r *CiviRulesRuleConditionResource) Create(ctx context.Context, req resourc
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("CiviRulesRuleCondition", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
@@ -164,13 +171,13 @@ func (r *CiviRulesRuleConditionResource) Update(ctx context.Context, req resourc
 		"is_active":    plan.IsActive.ValueBool(),
 		"negate":       plan.Negate.ValueBool(),
 	}
-	if !plan.ConditionParams.IsNull() && plan.ConditionParams.ValueString() != "" {
+	if !plan.ConditionParams.IsNull() && !plan.ConditionParams.IsUnknown() && plan.ConditionParams.ValueString() != "" {
 		values["condition_params"] = plan.ConditionParams.ValueString()
 	} else {
 		values["condition_params"] = nil
 	}
 
-	result, err := r.client.Update("CiviRulesRuleCondition", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("CiviRulesRuleCondition", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating CiviRulesRuleCondition",
 			"Could not update CiviRulesRuleCondition ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error())
@@ -178,6 +185,15 @@ func (r *CiviRulesRuleConditionResource) Update(ctx context.Context, req resourc
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("CiviRulesRuleCondition", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading CiviRulesRuleCondition after update",
+			"Could not re-read CiviRulesRuleCondition ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

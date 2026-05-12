@@ -32,14 +32,14 @@ resource "civicrm_group" "team_leaders" {
 # Assign the ACL role to the group
 # Note: acl_role_id must reference the ACL role's 'value' field, not 'id'
 resource "civicrm_acl_entity_role" "team_leaders_as_managers" {
-  acl_role_id  = tonumber(civicrm_acl_role.volunteer_manager.value)
+  acl_role_id  = civicrm_acl_role.volunteer_manager.value
   entity_table = "civicrm_group"
   entity_id    = civicrm_group.team_leaders.id
   is_active    = true
 }
 ```
 
-~> **Important:** The `acl_role_id` field must reference the ACL role's `value` attribute, not its `id`. CiviCRM internally uses the `value` field to link role assignments. Use `tonumber()` to convert the string value to a number.
+~> **Note:** `acl_role_id` must reference the ACL role's `value` attribute, not its `id`. These are different numbers — `value` is the internal role identifier CiviCRM uses to link assignments.
 
 ## Argument Reference
 
@@ -47,7 +47,7 @@ The following arguments are supported:
 
 ### Required
 
-- `acl_role_id` (Number) The `value` field of the ACL role to assign. Use `tonumber(civicrm_acl_role.example.value)` to reference an ACL role.
+- `acl_role_id` (Number) The `value` field of the ACL role to assign. Reference it directly as `civicrm_acl_role.example.value`.
 - `entity_id` (Number) The ID of the entity (e.g., group) to assign the role to.
 - `entity_table` (String) The entity type. Currently only `civicrm_group` is supported.
 

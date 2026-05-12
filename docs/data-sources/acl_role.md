@@ -25,7 +25,7 @@ data "civicrm_acl_role" "viewer" {
 # Use the data source to create an ACL rule
 resource "civicrm_acl" "editor_access" {
   name         = "editor_access_volunteers"
-  entity_id    = data.civicrm_acl_role.editor.id
+  entity_id    = data.civicrm_acl_role.editor.value
   operation    = "Edit"
   object_table = "civicrm_group"
   object_id    = civicrm_group.volunteers.id
@@ -52,5 +52,5 @@ In addition to the arguments above, the following attributes are exported:
 - `description` (String) A description of the ACL role.
 - `is_active` (Boolean) Whether the ACL role is active.
 - `label` (String) The display label of the ACL role.
-- `value` (String) The value of the ACL role (used internally by CiviCRM).
+- `value` (Number) The internal numeric value of the ACL role. Use this — not `id` — when referencing the role in `civicrm_acl` and `civicrm_acl_entity_role`.
 - `weight` (Number) The sort weight of the ACL role.

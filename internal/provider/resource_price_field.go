@@ -186,28 +186,28 @@ func (r *PriceFieldResource) Create(ctx context.Context, req resource.CreateRequ
 		"is_required":        plan.IsRequired.ValueBool(),
 	}
 
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	}
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.OptionsPerLine.IsNull() {
+	if !plan.OptionsPerLine.IsNull() && !plan.OptionsPerLine.IsUnknown() {
 		values["options_per_line"] = plan.OptionsPerLine.ValueInt64()
 	}
-	if !plan.ActiveOn.IsNull() {
+	if !plan.ActiveOn.IsNull() && !plan.ActiveOn.IsUnknown() {
 		values["active_on"] = plan.ActiveOn.ValueString()
 	}
-	if !plan.ExpireOn.IsNull() {
+	if !plan.ExpireOn.IsNull() && !plan.ExpireOn.IsUnknown() {
 		values["expire_on"] = plan.ExpireOn.ValueString()
 	}
-	if !plan.Javascript.IsNull() {
+	if !plan.Javascript.IsNull() && !plan.Javascript.IsUnknown() {
 		values["javascript"] = plan.Javascript.ValueString()
 	}
-	if !plan.VisibilityID.IsNull() {
+	if !plan.VisibilityID.IsNull() && !plan.VisibilityID.IsUnknown() {
 		values["visibility_id"] = plan.VisibilityID.ValueInt64()
 	}
 
@@ -220,6 +220,13 @@ func (r *PriceFieldResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("PriceField", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Created PriceField", map[string]any{"id": plan.ID.ValueInt64()})
@@ -281,48 +288,48 @@ func (r *PriceFieldResource) Update(ctx context.Context, req resource.UpdateRequ
 		"is_required":        plan.IsRequired.ValueBool(),
 	}
 
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	} else {
 		values["help_pre"] = nil
 	}
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	} else {
 		values["help_post"] = nil
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	} else {
 		values["weight"] = nil
 	}
-	if !plan.OptionsPerLine.IsNull() {
+	if !plan.OptionsPerLine.IsNull() && !plan.OptionsPerLine.IsUnknown() {
 		values["options_per_line"] = plan.OptionsPerLine.ValueInt64()
 	} else {
 		values["options_per_line"] = nil
 	}
-	if !plan.ActiveOn.IsNull() {
+	if !plan.ActiveOn.IsNull() && !plan.ActiveOn.IsUnknown() {
 		values["active_on"] = plan.ActiveOn.ValueString()
 	} else {
 		values["active_on"] = nil
 	}
-	if !plan.ExpireOn.IsNull() {
+	if !plan.ExpireOn.IsNull() && !plan.ExpireOn.IsUnknown() {
 		values["expire_on"] = plan.ExpireOn.ValueString()
 	} else {
 		values["expire_on"] = nil
 	}
-	if !plan.Javascript.IsNull() {
+	if !plan.Javascript.IsNull() && !plan.Javascript.IsUnknown() {
 		values["javascript"] = plan.Javascript.ValueString()
 	} else {
 		values["javascript"] = nil
 	}
-	if !plan.VisibilityID.IsNull() {
+	if !plan.VisibilityID.IsNull() && !plan.VisibilityID.IsUnknown() {
 		values["visibility_id"] = plan.VisibilityID.ValueInt64()
 	} else {
 		values["visibility_id"] = nil
 	}
 
-	result, err := r.client.Update("PriceField", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("PriceField", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating PriceField",
@@ -332,6 +339,15 @@ func (r *PriceFieldResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("PriceField", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading PriceField after update",
+			"Could not re-read PriceField ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Updated PriceField", map[string]any{"id": plan.ID.ValueInt64()})

@@ -151,23 +151,23 @@ func (r *RelationshipTypeResource) Create(ctx context.Context, req resource.Crea
 		"is_active":   plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.ContactTypeA.IsNull() {
+	if !plan.ContactTypeA.IsNull() && !plan.ContactTypeA.IsUnknown() {
 		values["contact_type_a"] = plan.ContactTypeA.ValueString()
 	}
 
-	if !plan.ContactTypeB.IsNull() {
+	if !plan.ContactTypeB.IsNull() && !plan.ContactTypeB.IsUnknown() {
 		values["contact_type_b"] = plan.ContactTypeB.ValueString()
 	}
 
-	if !plan.ContactSubTypeA.IsNull() {
+	if !plan.ContactSubTypeA.IsNull() && !plan.ContactSubTypeA.IsUnknown() {
 		values["contact_sub_type_a"] = plan.ContactSubTypeA.ValueString()
 	}
 
-	if !plan.ContactSubTypeB.IsNull() {
+	if !plan.ContactSubTypeB.IsNull() && !plan.ContactSubTypeB.IsUnknown() {
 		values["contact_sub_type_b"] = plan.ContactSubTypeB.ValueString()
 	}
 
@@ -179,6 +179,13 @@ func (r *RelationshipTypeResource) Create(ctx context.Context, req resource.Crea
 			"Could not create relationship type, unexpected error: "+err.Error(),
 		)
 		return
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("RelationshipType", createdID, nil); err2 == nil {
+			result = fullResult
+		}
 	}
 
 	// Update state with response
@@ -249,38 +256,38 @@ func (r *RelationshipTypeResource) Update(ctx context.Context, req resource.Upda
 		"is_active":   plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.ContactTypeA.IsNull() {
+	if !plan.ContactTypeA.IsNull() && !plan.ContactTypeA.IsUnknown() {
 		values["contact_type_a"] = plan.ContactTypeA.ValueString()
 	} else {
 		values["contact_type_a"] = nil
 	}
 
-	if !plan.ContactTypeB.IsNull() {
+	if !plan.ContactTypeB.IsNull() && !plan.ContactTypeB.IsUnknown() {
 		values["contact_type_b"] = plan.ContactTypeB.ValueString()
 	} else {
 		values["contact_type_b"] = nil
 	}
 
-	if !plan.ContactSubTypeA.IsNull() {
+	if !plan.ContactSubTypeA.IsNull() && !plan.ContactSubTypeA.IsUnknown() {
 		values["contact_sub_type_a"] = plan.ContactSubTypeA.ValueString()
 	} else {
 		values["contact_sub_type_a"] = nil
 	}
 
-	if !plan.ContactSubTypeB.IsNull() {
+	if !plan.ContactSubTypeB.IsNull() && !plan.ContactSubTypeB.IsUnknown() {
 		values["contact_sub_type_b"] = plan.ContactSubTypeB.ValueString()
 	} else {
 		values["contact_sub_type_b"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("RelationshipType", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("RelationshipType", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating relationship type",
@@ -291,6 +298,15 @@ func (r *RelationshipTypeResource) Update(ctx context.Context, req resource.Upda
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("RelationshipType", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading RelationshipType after update",
+			"Could not re-read RelationshipType ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResponseToModel(result, &plan)
 
 	tflog.Debug(ctx, "Updated relationship type", map[string]any{

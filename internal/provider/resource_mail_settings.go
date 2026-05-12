@@ -214,67 +214,67 @@ func (r *MailSettingsResource) Create(ctx context.Context, req resource.CreateRe
 		"is_active": plan.IsActive.ValueBool(),
 	}
 
-	if !plan.DomainID.IsNull() {
+	if !plan.DomainID.IsNull() && !plan.DomainID.IsUnknown() {
 		values["domain_id"] = plan.DomainID.ValueInt64()
 	}
 
-	if !plan.Domain.IsNull() {
+	if !plan.Domain.IsNull() && !plan.Domain.IsUnknown() {
 		values["domain"] = plan.Domain.ValueString()
 	}
 
-	if !plan.Localpart.IsNull() {
+	if !plan.Localpart.IsNull() && !plan.Localpart.IsUnknown() {
 		values["localpart"] = plan.Localpart.ValueString()
 	}
 
-	if !plan.ReturnPath.IsNull() {
+	if !plan.ReturnPath.IsNull() && !plan.ReturnPath.IsUnknown() {
 		values["return_path"] = plan.ReturnPath.ValueString()
 	}
 
-	if !plan.Protocol.IsNull() {
+	if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
 		values["protocol"] = plan.Protocol.ValueString()
 	}
 
-	if !plan.Server.IsNull() {
+	if !plan.Server.IsNull() && !plan.Server.IsUnknown() {
 		values["server"] = plan.Server.ValueString()
 	}
 
-	if !plan.Port.IsNull() {
+	if !plan.Port.IsNull() && !plan.Port.IsUnknown() {
 		values["port"] = plan.Port.ValueInt64()
 	}
 
-	if !plan.Username.IsNull() {
+	if !plan.Username.IsNull() && !plan.Username.IsUnknown() {
 		values["username"] = plan.Username.ValueString()
 	}
 
-	if !plan.Password.IsNull() {
+	if !plan.Password.IsNull() && !plan.Password.IsUnknown() {
 		values["password"] = plan.Password.ValueString()
 	}
 
-	if !plan.Source.IsNull() {
+	if !plan.Source.IsNull() && !plan.Source.IsUnknown() {
 		values["source"] = plan.Source.ValueString()
 	}
 
-	if !plan.ActivityStatus.IsNull() {
+	if !plan.ActivityStatus.IsNull() && !plan.ActivityStatus.IsUnknown() {
 		values["activity_status"] = plan.ActivityStatus.ValueString()
 	}
 
-	if !plan.ActivityTypeID.IsNull() {
+	if !plan.ActivityTypeID.IsNull() && !plan.ActivityTypeID.IsUnknown() {
 		values["activity_type_id"] = plan.ActivityTypeID.ValueInt64()
 	}
 
-	if !plan.CampaignID.IsNull() {
+	if !plan.CampaignID.IsNull() && !plan.CampaignID.IsUnknown() {
 		values["campaign_id"] = plan.CampaignID.ValueInt64()
 	}
 
-	if !plan.ActivitySource.IsNull() {
+	if !plan.ActivitySource.IsNull() && !plan.ActivitySource.IsUnknown() {
 		values["activity_source"] = plan.ActivitySource.ValueString()
 	}
 
-	if !plan.ActivityTargets.IsNull() {
+	if !plan.ActivityTargets.IsNull() && !plan.ActivityTargets.IsUnknown() {
 		values["activity_targets"] = plan.ActivityTargets.ValueString()
 	}
 
-	if !plan.ActivityAssignees.IsNull() {
+	if !plan.ActivityAssignees.IsNull() && !plan.ActivityAssignees.IsUnknown() {
 		values["activity_assignees"] = plan.ActivityAssignees.ValueString()
 	}
 
@@ -286,6 +286,13 @@ func (r *MailSettingsResource) Create(ctx context.Context, req resource.CreateRe
 			"Could not create mail settings, unexpected error: "+err.Error(),
 		)
 		return
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("MailSettings", createdID, nil); err2 == nil {
+			result = fullResult
+		}
 	}
 
 	// Update state with response
@@ -356,102 +363,102 @@ func (r *MailSettingsResource) Update(ctx context.Context, req resource.UpdateRe
 		"is_active": plan.IsActive.ValueBool(),
 	}
 
-	if !plan.DomainID.IsNull() {
+	if !plan.DomainID.IsNull() && !plan.DomainID.IsUnknown() {
 		values["domain_id"] = plan.DomainID.ValueInt64()
 	}
 
-	if !plan.Domain.IsNull() {
+	if !plan.Domain.IsNull() && !plan.Domain.IsUnknown() {
 		values["domain"] = plan.Domain.ValueString()
 	} else {
 		values["domain"] = nil
 	}
 
-	if !plan.Localpart.IsNull() {
+	if !plan.Localpart.IsNull() && !plan.Localpart.IsUnknown() {
 		values["localpart"] = plan.Localpart.ValueString()
 	} else {
 		values["localpart"] = nil
 	}
 
-	if !plan.ReturnPath.IsNull() {
+	if !plan.ReturnPath.IsNull() && !plan.ReturnPath.IsUnknown() {
 		values["return_path"] = plan.ReturnPath.ValueString()
 	} else {
 		values["return_path"] = nil
 	}
 
-	if !plan.Protocol.IsNull() {
+	if !plan.Protocol.IsNull() && !plan.Protocol.IsUnknown() {
 		values["protocol"] = plan.Protocol.ValueString()
 	} else {
 		values["protocol"] = nil
 	}
 
-	if !plan.Server.IsNull() {
+	if !plan.Server.IsNull() && !plan.Server.IsUnknown() {
 		values["server"] = plan.Server.ValueString()
 	} else {
 		values["server"] = nil
 	}
 
-	if !plan.Port.IsNull() {
+	if !plan.Port.IsNull() && !plan.Port.IsUnknown() {
 		values["port"] = plan.Port.ValueInt64()
 	} else {
 		values["port"] = nil
 	}
 
-	if !plan.Username.IsNull() {
+	if !plan.Username.IsNull() && !plan.Username.IsUnknown() {
 		values["username"] = plan.Username.ValueString()
 	} else {
 		values["username"] = nil
 	}
 
-	if !plan.Password.IsNull() {
+	if !plan.Password.IsNull() && !plan.Password.IsUnknown() {
 		values["password"] = plan.Password.ValueString()
 	} else {
 		values["password"] = nil
 	}
 
-	if !plan.Source.IsNull() {
+	if !plan.Source.IsNull() && !plan.Source.IsUnknown() {
 		values["source"] = plan.Source.ValueString()
 	} else {
 		values["source"] = nil
 	}
 
-	if !plan.ActivityStatus.IsNull() {
+	if !plan.ActivityStatus.IsNull() && !plan.ActivityStatus.IsUnknown() {
 		values["activity_status"] = plan.ActivityStatus.ValueString()
 	} else {
 		values["activity_status"] = nil
 	}
 
-	if !plan.ActivityTypeID.IsNull() {
+	if !plan.ActivityTypeID.IsNull() && !plan.ActivityTypeID.IsUnknown() {
 		values["activity_type_id"] = plan.ActivityTypeID.ValueInt64()
 	} else {
 		values["activity_type_id"] = nil
 	}
 
-	if !plan.CampaignID.IsNull() {
+	if !plan.CampaignID.IsNull() && !plan.CampaignID.IsUnknown() {
 		values["campaign_id"] = plan.CampaignID.ValueInt64()
 	} else {
 		values["campaign_id"] = nil
 	}
 
-	if !plan.ActivitySource.IsNull() {
+	if !plan.ActivitySource.IsNull() && !plan.ActivitySource.IsUnknown() {
 		values["activity_source"] = plan.ActivitySource.ValueString()
 	} else {
 		values["activity_source"] = nil
 	}
 
-	if !plan.ActivityTargets.IsNull() {
+	if !plan.ActivityTargets.IsNull() && !plan.ActivityTargets.IsUnknown() {
 		values["activity_targets"] = plan.ActivityTargets.ValueString()
 	} else {
 		values["activity_targets"] = nil
 	}
 
-	if !plan.ActivityAssignees.IsNull() {
+	if !plan.ActivityAssignees.IsNull() && !plan.ActivityAssignees.IsUnknown() {
 		values["activity_assignees"] = plan.ActivityAssignees.ValueString()
 	} else {
 		values["activity_assignees"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("MailSettings", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("MailSettings", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating mail settings",
@@ -462,6 +469,15 @@ func (r *MailSettingsResource) Update(ctx context.Context, req resource.UpdateRe
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("MailSettings", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading MailSettings after update",
+			"Could not re-read MailSettings ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResponseToModel(result, &plan)
 
 	tflog.Debug(ctx, "Updated mail settings", map[string]any{

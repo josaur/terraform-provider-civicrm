@@ -1,0 +1,42 @@
+package provider_test
+
+import (
+	"testing"
+
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+)
+
+func TestAccActivityTypeResource(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig() + `
+resource "civicrm_activity_type" "test" {
+  name  = "tf_acc_activity_type"
+  label = "TF Acceptance Activity Type"
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttrSet("civicrm_activity_type.test", "id"),
+					resource.TestCheckResourceAttr("civicrm_activity_type.test", "name", "tf_acc_activity_type"),
+					resource.TestCheckResourceAttr("civicrm_activity_type.test", "label", "TF Acceptance Activity Type"),
+					resource.TestCheckResourceAttr("civicrm_activity_type.test", "is_active", "true"),
+				),
+			},
+			{
+				ResourceName:      "civicrm_activity_type.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			{
+				Config: providerConfig() + `
+resource "civicrm_activity_type" "test" {
+  name  = "tf_acc_activity_type"
+  label = "TF Acceptance Activity Type Updated"
+}`,
+				Check: resource.TestCheckResourceAttr("civicrm_activity_type.test", "label", "TF Acceptance Activity Type Updated"),
+			},
+		},
+	})
+}

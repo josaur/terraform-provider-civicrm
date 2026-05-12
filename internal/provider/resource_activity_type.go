@@ -158,19 +158,19 @@ func (r *ActivityTypeResource) Create(ctx context.Context, req resource.CreateRe
 		"is_active":       plan.IsActive.ValueBool(),
 		"is_reserved":     plan.IsReserved.ValueBool(),
 	}
-	if !plan.Description.IsNull() && plan.Description.ValueString() != "" {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() != "" {
 		values["description"] = plan.Description.ValueString()
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.Value.IsNull() && plan.Value.ValueString() != "" {
+	if !plan.Value.IsNull() && !plan.Value.IsUnknown() && plan.Value.ValueString() != "" {
 		values["value"] = plan.Value.ValueString()
 	}
-	if !plan.Color.IsNull() && plan.Color.ValueString() != "" {
+	if !plan.Color.IsNull() && !plan.Color.IsUnknown() && plan.Color.ValueString() != "" {
 		values["color"] = plan.Color.ValueString()
 	}
-	if !plan.Icon.IsNull() && plan.Icon.ValueString() != "" {
+	if !plan.Icon.IsNull() && !plan.Icon.IsUnknown() && plan.Icon.ValueString() != "" {
 		values["icon"] = plan.Icon.ValueString()
 	}
 
@@ -180,6 +180,13 @@ func (r *ActivityTypeResource) Create(ctx context.Context, req resource.CreateRe
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("OptionValue", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 	tflog.Debug(ctx, "Created ActivityType", map[string]any{"id": plan.ID.ValueInt64()})
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
@@ -223,29 +230,29 @@ func (r *ActivityTypeResource) Update(ctx context.Context, req resource.UpdateRe
 		"is_active":   plan.IsActive.ValueBool(),
 		"is_reserved": plan.IsReserved.ValueBool(),
 	}
-	if !plan.Description.IsNull() && plan.Description.ValueString() != "" {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() && plan.Description.ValueString() != "" {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.Value.IsNull() && plan.Value.ValueString() != "" {
+	if !plan.Value.IsNull() && !plan.Value.IsUnknown() && plan.Value.ValueString() != "" {
 		values["value"] = plan.Value.ValueString()
 	}
-	if !plan.Color.IsNull() && plan.Color.ValueString() != "" {
+	if !plan.Color.IsNull() && !plan.Color.IsUnknown() && plan.Color.ValueString() != "" {
 		values["color"] = plan.Color.ValueString()
 	} else {
 		values["color"] = nil
 	}
-	if !plan.Icon.IsNull() && plan.Icon.ValueString() != "" {
+	if !plan.Icon.IsNull() && !plan.Icon.IsUnknown() && plan.Icon.ValueString() != "" {
 		values["icon"] = plan.Icon.ValueString()
 	} else {
 		values["icon"] = nil
 	}
 
-	result, err := r.client.Update("OptionValue", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("OptionValue", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating ActivityType",
@@ -255,6 +262,15 @@ func (r *ActivityTypeResource) Update(ctx context.Context, req resource.UpdateRe
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("OptionValue", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading OptionValue after update",
+			"Could not re-read OptionValue ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

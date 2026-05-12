@@ -126,11 +126,11 @@ func (r *SiteEmailAddressResource) Create(ctx context.Context, req resource.Crea
 		"is_default":   plan.IsDefault.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.DomainID.IsNull() {
+	if !plan.DomainID.IsNull() && !plan.DomainID.IsUnknown() {
 		values["domain_id"] = plan.DomainID.ValueInt64()
 	}
 
@@ -147,6 +147,16 @@ func (r *SiteEmailAddressResource) Create(ctx context.Context, req resource.Crea
 	// Update state with response
 	if id, ok := GetInt64(result, "id"); ok {
 		plan.ID = types.Int64Value(id)
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	result, err = r.client.GetByID("SiteEmailAddress", plan.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading SiteEmailAddress after create",
+			"Could not re-read after create: "+err.Error(),
+		)
+		return
 	}
 
 	if displayName, ok := GetString(result, "display_name"); ok {
@@ -262,18 +272,18 @@ func (r *SiteEmailAddressResource) Update(ctx context.Context, req resource.Upda
 		"is_default":   plan.IsDefault.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.DomainID.IsNull() {
+	if !plan.DomainID.IsNull() && !plan.DomainID.IsUnknown() {
 		values["domain_id"] = plan.DomainID.ValueInt64()
 	}
 
 	// Call API
-	result, err := r.client.Update("SiteEmailAddress", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("SiteEmailAddress", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating site email address",
@@ -284,6 +294,15 @@ func (r *SiteEmailAddressResource) Update(ctx context.Context, req resource.Upda
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("SiteEmailAddress", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading SiteEmailAddress after update",
+			"Could not re-read SiteEmailAddress ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 
 	if displayName, ok := GetString(result, "display_name"); ok {
 		plan.DisplayName = types.StringValue(displayName)

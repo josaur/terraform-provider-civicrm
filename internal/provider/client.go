@@ -230,6 +230,12 @@ func GetInt64(m map[string]any, key string) (int64, bool) {
 	case json.Number:
 		i, err := val.Int64()
 		return i, err == nil
+	case string:
+		if val == "null" {
+			return 0, false
+		}
+		i, err := strconv.ParseInt(val, 10, 64)
+		return i, err == nil
 	default:
 		return 0, false
 	}
@@ -245,6 +251,9 @@ func GetString(m map[string]any, key string) (string, bool) {
 	}
 	switch val := v.(type) {
 	case string:
+		if val == "null" {
+			return "", false
+		}
 		return val, true
 	case float64:
 		if val == float64(int64(val)) {

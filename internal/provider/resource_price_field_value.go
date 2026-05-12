@@ -188,37 +188,37 @@ func (r *PriceFieldValueResource) Create(ctx context.Context, req resource.Creat
 		"is_active":      plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	}
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	}
-	if !plan.Count.IsNull() {
+	if !plan.Count.IsNull() && !plan.Count.IsUnknown() {
 		values["count"] = plan.Count.ValueInt64()
 	}
-	if !plan.MaxValue.IsNull() {
+	if !plan.MaxValue.IsNull() && !plan.MaxValue.IsUnknown() {
 		values["max_value"] = plan.MaxValue.ValueInt64()
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.MembershipTypeID.IsNull() {
+	if !plan.MembershipTypeID.IsNull() && !plan.MembershipTypeID.IsUnknown() {
 		values["membership_type_id"] = plan.MembershipTypeID.ValueInt64()
 	}
-	if !plan.MembershipNumTerms.IsNull() {
+	if !plan.MembershipNumTerms.IsNull() && !plan.MembershipNumTerms.IsUnknown() {
 		values["membership_num_terms"] = plan.MembershipNumTerms.ValueInt64()
 	}
-	if !plan.FinancialTypeID.IsNull() {
+	if !plan.FinancialTypeID.IsNull() && !plan.FinancialTypeID.IsUnknown() {
 		values["financial_type_id"] = plan.FinancialTypeID.ValueInt64()
 	}
-	if !plan.NonDeductibleAmount.IsNull() {
+	if !plan.NonDeductibleAmount.IsNull() && !plan.NonDeductibleAmount.IsUnknown() {
 		values["non_deductible_amount"] = plan.NonDeductibleAmount.ValueFloat64()
 	}
-	if !plan.VisibilityID.IsNull() {
+	if !plan.VisibilityID.IsNull() && !plan.VisibilityID.IsUnknown() {
 		values["visibility_id"] = plan.VisibilityID.ValueInt64()
 	}
 
@@ -231,6 +231,13 @@ func (r *PriceFieldValueResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("PriceFieldValue", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Created PriceFieldValue", map[string]any{"id": plan.ID.ValueInt64()})
@@ -290,63 +297,63 @@ func (r *PriceFieldValueResource) Update(ctx context.Context, req resource.Updat
 		"is_active":      plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	} else {
 		values["help_pre"] = nil
 	}
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	} else {
 		values["help_post"] = nil
 	}
-	if !plan.Count.IsNull() {
+	if !plan.Count.IsNull() && !plan.Count.IsUnknown() {
 		values["count"] = plan.Count.ValueInt64()
 	} else {
 		values["count"] = nil
 	}
-	if !plan.MaxValue.IsNull() {
+	if !plan.MaxValue.IsNull() && !plan.MaxValue.IsUnknown() {
 		values["max_value"] = plan.MaxValue.ValueInt64()
 	} else {
 		values["max_value"] = nil
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	} else {
 		values["weight"] = nil
 	}
-	if !plan.MembershipTypeID.IsNull() {
+	if !plan.MembershipTypeID.IsNull() && !plan.MembershipTypeID.IsUnknown() {
 		values["membership_type_id"] = plan.MembershipTypeID.ValueInt64()
 	} else {
 		values["membership_type_id"] = nil
 	}
-	if !plan.MembershipNumTerms.IsNull() {
+	if !plan.MembershipNumTerms.IsNull() && !plan.MembershipNumTerms.IsUnknown() {
 		values["membership_num_terms"] = plan.MembershipNumTerms.ValueInt64()
 	} else {
 		values["membership_num_terms"] = nil
 	}
-	if !plan.FinancialTypeID.IsNull() {
+	if !plan.FinancialTypeID.IsNull() && !plan.FinancialTypeID.IsUnknown() {
 		values["financial_type_id"] = plan.FinancialTypeID.ValueInt64()
 	} else {
 		values["financial_type_id"] = nil
 	}
-	if !plan.NonDeductibleAmount.IsNull() {
+	if !plan.NonDeductibleAmount.IsNull() && !plan.NonDeductibleAmount.IsUnknown() {
 		values["non_deductible_amount"] = plan.NonDeductibleAmount.ValueFloat64()
 	} else {
 		values["non_deductible_amount"] = nil
 	}
-	if !plan.VisibilityID.IsNull() {
+	if !plan.VisibilityID.IsNull() && !plan.VisibilityID.IsUnknown() {
 		values["visibility_id"] = plan.VisibilityID.ValueInt64()
 	} else {
 		values["visibility_id"] = nil
 	}
 
-	result, err := r.client.Update("PriceFieldValue", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("PriceFieldValue", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating PriceFieldValue",
@@ -356,6 +363,15 @@ func (r *PriceFieldValueResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("PriceFieldValue", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading PriceFieldValue after update",
+			"Could not re-read PriceFieldValue ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Updated PriceFieldValue", map[string]any{"id": plan.ID.ValueInt64()})

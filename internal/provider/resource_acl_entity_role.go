@@ -134,6 +134,16 @@ func (r *ACLEntityRoleResource) Create(ctx context.Context, req resource.CreateR
 		plan.ID = types.Int64Value(id)
 	}
 
+	// Re-read to get complete state (Create response is sparse)
+	result, err = r.client.GetByID("ACLEntityRole", plan.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading ACLEntityRole after create",
+			"Could not re-read after create: "+err.Error(),
+		)
+		return
+	}
+
 	if aclRoleID, ok := GetInt64(result, "acl_role_id"); ok {
 		plan.ACLRoleID = types.Int64Value(aclRoleID)
 	}
@@ -228,7 +238,7 @@ func (r *ACLEntityRoleResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Call API
-	result, err := r.client.Update("ACLEntityRole", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("ACLEntityRole", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating ACL entity role",
@@ -239,6 +249,15 @@ func (r *ACLEntityRoleResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("ACLEntityRole", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading ACLEntityRole after update",
+			"Could not re-read ACLEntityRole ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 
 	if aclRoleID, ok := GetInt64(result, "acl_role_id"); ok {
 		plan.ACLRoleID = types.Int64Value(aclRoleID)

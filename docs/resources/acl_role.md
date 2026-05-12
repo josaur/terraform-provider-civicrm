@@ -22,25 +22,23 @@ resource "civicrm_acl_role" "volunteer_manager" {
 
 # ACL role with explicit value for predictable references
 resource "civicrm_acl_role" "data_viewer" {
-  name        = "data_viewer"
-  label       = "Data Viewer"
-  description = "Read-only access to contact data"
-  value       = "100"
-  is_active   = true
+  name      = "data_viewer"
+  label     = "Data Viewer"
+  value     = 100
+  is_active = true
 }
 
-# Combined with ACL rules - use tonumber() to convert value to number
+# Combined with ACL rules — value is a Number and can be referenced directly
 resource "civicrm_acl_role" "event_coordinator" {
-  name        = "event_coordinator"
-  label       = "Event Coordinator"
-  description = "Manages event participants"
-  value       = "101"
-  is_active   = true
+  name      = "event_coordinator"
+  label     = "Event Coordinator"
+  value     = 101
+  is_active = true
 }
 
 resource "civicrm_acl" "event_coordinator_edit" {
   name         = "event_coordinator_edit_participants"
-  entity_id    = tonumber(civicrm_acl_role.event_coordinator.value)
+  entity_id    = civicrm_acl_role.event_coordinator.value
   operation    = "Edit"
   object_table = "civicrm_group"
   object_id    = civicrm_group.event_participants.id
@@ -61,15 +59,15 @@ The following arguments are supported:
 
 - `description` (String) A description of the ACL role.
 - `is_active` (Boolean) Whether the ACL role is active. Default: `true`.
-- `value` (String) The internal value used by CiviCRM to link ACL rules and entity roles. If not specified, CiviCRM auto-generates it. Use `tonumber(civicrm_acl_role.example.value)` when referencing in `civicrm_acl` or `civicrm_acl_entity_role` resources.
+- `value` (Number) The internal numeric value used by CiviCRM to link ACL rules and entity roles. If not specified, CiviCRM auto-generates it. Reference this directly as `acl_role_id` in `civicrm_acl` and `civicrm_acl_entity_role` resources.
 - `weight` (Number) The sort weight of the ACL role.
 
 ## Attributes Reference
 
 In addition to all arguments above, the following attributes are exported:
 
-- `id` (Number) The unique identifier of the ACL role.
-- `value` (String) The internal value (computed if not specified).
+- `id` (Number) The unique identifier of the ACL role (OptionValue database ID — distinct from `value`).
+- `value` (Number) The internal numeric value (computed if not specified). Use this — not `id` — when referencing the role in `civicrm_acl` and `civicrm_acl_entity_role`.
 
 ## Import
 

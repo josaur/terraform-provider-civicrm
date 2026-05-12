@@ -285,55 +285,55 @@ func (r *CustomFieldResource) Create(ctx context.Context, req resource.CreateReq
 		"fk_entity_on_delete": plan.FkEntityOnDelete.ValueString(),
 	}
 
-	if !plan.DefaultValue.IsNull() {
+	if !plan.DefaultValue.IsNull() && !plan.DefaultValue.IsUnknown() {
 		values["default_value"] = plan.DefaultValue.ValueString()
 	}
 
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	}
 
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	}
 
-	if !plan.Attributes.IsNull() {
+	if !plan.Attributes.IsNull() && !plan.Attributes.IsUnknown() {
 		values["attributes"] = plan.Attributes.ValueString()
 	}
 
-	if !plan.OptionsPerLine.IsNull() {
+	if !plan.OptionsPerLine.IsNull() && !plan.OptionsPerLine.IsUnknown() {
 		values["options_per_line"] = plan.OptionsPerLine.ValueInt64()
 	}
 
-	if !plan.StartDateYears.IsNull() {
+	if !plan.StartDateYears.IsNull() && !plan.StartDateYears.IsUnknown() {
 		values["start_date_years"] = plan.StartDateYears.ValueInt64()
 	}
 
-	if !plan.EndDateYears.IsNull() {
+	if !plan.EndDateYears.IsNull() && !plan.EndDateYears.IsUnknown() {
 		values["end_date_years"] = plan.EndDateYears.ValueInt64()
 	}
 
-	if !plan.DateFormat.IsNull() {
+	if !plan.DateFormat.IsNull() && !plan.DateFormat.IsUnknown() {
 		values["date_format"] = plan.DateFormat.ValueString()
 	}
 
-	if !plan.TimeFormat.IsNull() {
+	if !plan.TimeFormat.IsNull() && !plan.TimeFormat.IsUnknown() {
 		values["time_format"] = plan.TimeFormat.ValueInt64()
 	}
 
-	if !plan.ColumnName.IsNull() {
+	if !plan.ColumnName.IsNull() && !plan.ColumnName.IsUnknown() {
 		values["column_name"] = plan.ColumnName.ValueString()
 	}
 
-	if !plan.OptionGroupID.IsNull() {
+	if !plan.OptionGroupID.IsNull() && !plan.OptionGroupID.IsUnknown() {
 		values["option_group_id"] = plan.OptionGroupID.ValueInt64()
 	}
 
-	if !plan.Filter.IsNull() {
+	if !plan.Filter.IsNull() && !plan.Filter.IsUnknown() {
 		values["filter"] = plan.Filter.ValueString()
 	}
 
-	if !plan.FkEntity.IsNull() {
+	if !plan.FkEntity.IsNull() && !plan.FkEntity.IsUnknown() {
 		values["fk_entity"] = plan.FkEntity.ValueString()
 	}
 
@@ -345,6 +345,13 @@ func (r *CustomFieldResource) Create(ctx context.Context, req resource.CreateReq
 			"Could not create custom field, unexpected error: "+err.Error(),
 		)
 		return
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("CustomField", createdID, nil); err2 == nil {
+			result = fullResult
+		}
 	}
 
 	// Update state with response
@@ -426,80 +433,80 @@ func (r *CustomFieldResource) Update(ctx context.Context, req resource.UpdateReq
 		"fk_entity_on_delete": plan.FkEntityOnDelete.ValueString(),
 	}
 
-	if !plan.DefaultValue.IsNull() {
+	if !plan.DefaultValue.IsNull() && !plan.DefaultValue.IsUnknown() {
 		values["default_value"] = plan.DefaultValue.ValueString()
 	} else {
 		values["default_value"] = nil
 	}
 
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	} else {
 		values["help_pre"] = nil
 	}
 
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	} else {
 		values["help_post"] = nil
 	}
 
-	if !plan.Attributes.IsNull() {
+	if !plan.Attributes.IsNull() && !plan.Attributes.IsUnknown() {
 		values["attributes"] = plan.Attributes.ValueString()
 	} else {
 		values["attributes"] = nil
 	}
 
-	if !plan.OptionsPerLine.IsNull() {
+	if !plan.OptionsPerLine.IsNull() && !plan.OptionsPerLine.IsUnknown() {
 		values["options_per_line"] = plan.OptionsPerLine.ValueInt64()
 	} else {
 		values["options_per_line"] = nil
 	}
 
-	if !plan.StartDateYears.IsNull() {
+	if !plan.StartDateYears.IsNull() && !plan.StartDateYears.IsUnknown() {
 		values["start_date_years"] = plan.StartDateYears.ValueInt64()
 	} else {
 		values["start_date_years"] = nil
 	}
 
-	if !plan.EndDateYears.IsNull() {
+	if !plan.EndDateYears.IsNull() && !plan.EndDateYears.IsUnknown() {
 		values["end_date_years"] = plan.EndDateYears.ValueInt64()
 	} else {
 		values["end_date_years"] = nil
 	}
 
-	if !plan.DateFormat.IsNull() {
+	if !plan.DateFormat.IsNull() && !plan.DateFormat.IsUnknown() {
 		values["date_format"] = plan.DateFormat.ValueString()
 	} else {
 		values["date_format"] = nil
 	}
 
-	if !plan.TimeFormat.IsNull() {
+	if !plan.TimeFormat.IsNull() && !plan.TimeFormat.IsUnknown() {
 		values["time_format"] = plan.TimeFormat.ValueInt64()
 	} else {
 		values["time_format"] = nil
 	}
 
-	if !plan.OptionGroupID.IsNull() {
+	if !plan.OptionGroupID.IsNull() && !plan.OptionGroupID.IsUnknown() {
 		values["option_group_id"] = plan.OptionGroupID.ValueInt64()
 	} else {
 		values["option_group_id"] = nil
 	}
 
-	if !plan.Filter.IsNull() {
+	if !plan.Filter.IsNull() && !plan.Filter.IsUnknown() {
 		values["filter"] = plan.Filter.ValueString()
 	} else {
 		values["filter"] = nil
 	}
 
-	if !plan.FkEntity.IsNull() {
+	if !plan.FkEntity.IsNull() && !plan.FkEntity.IsUnknown() {
 		values["fk_entity"] = plan.FkEntity.ValueString()
 	} else {
 		values["fk_entity"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("CustomField", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("CustomField", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating custom field",
@@ -510,6 +517,15 @@ func (r *CustomFieldResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("CustomField", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading CustomField after update",
+			"Could not re-read CustomField ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResponseToModel(result, &plan)
 
 	tflog.Debug(ctx, "Updated custom field", map[string]any{

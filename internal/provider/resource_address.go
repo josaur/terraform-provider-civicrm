@@ -137,28 +137,28 @@ func (r *AddressResource) Create(ctx context.Context, req resource.CreateRequest
 		"is_billing": plan.IsBilling.ValueBool(),
 	}
 
-	if !plan.LocationTypeID.IsNull() {
+	if !plan.LocationTypeID.IsNull() && !plan.LocationTypeID.IsUnknown() {
 		values["location_type_id"] = plan.LocationTypeID.ValueInt64()
 	}
-	if !plan.StreetAddress.IsNull() {
+	if !plan.StreetAddress.IsNull() && !plan.StreetAddress.IsUnknown() {
 		values["street_address"] = plan.StreetAddress.ValueString()
 	}
-	if !plan.SupplementalAddress1.IsNull() {
+	if !plan.SupplementalAddress1.IsNull() && !plan.SupplementalAddress1.IsUnknown() {
 		values["supplemental_address_1"] = plan.SupplementalAddress1.ValueString()
 	}
-	if !plan.SupplementalAddress2.IsNull() {
+	if !plan.SupplementalAddress2.IsNull() && !plan.SupplementalAddress2.IsUnknown() {
 		values["supplemental_address_2"] = plan.SupplementalAddress2.ValueString()
 	}
-	if !plan.City.IsNull() {
+	if !plan.City.IsNull() && !plan.City.IsUnknown() {
 		values["city"] = plan.City.ValueString()
 	}
-	if !plan.PostalCode.IsNull() {
+	if !plan.PostalCode.IsNull() && !plan.PostalCode.IsUnknown() {
 		values["postal_code"] = plan.PostalCode.ValueString()
 	}
-	if !plan.StateProvinceID.IsNull() {
+	if !plan.StateProvinceID.IsNull() && !plan.StateProvinceID.IsUnknown() {
 		values["state_province_id"] = plan.StateProvinceID.ValueInt64()
 	}
-	if !plan.CountryID.IsNull() {
+	if !plan.CountryID.IsNull() && !plan.CountryID.IsUnknown() {
 		values["country_id"] = plan.CountryID.ValueInt64()
 	}
 
@@ -210,48 +210,48 @@ func (r *AddressResource) Update(ctx context.Context, req resource.UpdateRequest
 		"is_billing": plan.IsBilling.ValueBool(),
 	}
 
-	if !plan.LocationTypeID.IsNull() {
+	if !plan.LocationTypeID.IsNull() && !plan.LocationTypeID.IsUnknown() {
 		values["location_type_id"] = plan.LocationTypeID.ValueInt64()
 	} else {
 		values["location_type_id"] = nil
 	}
-	if !plan.StreetAddress.IsNull() {
+	if !plan.StreetAddress.IsNull() && !plan.StreetAddress.IsUnknown() {
 		values["street_address"] = plan.StreetAddress.ValueString()
 	} else {
 		values["street_address"] = nil
 	}
-	if !plan.SupplementalAddress1.IsNull() {
+	if !plan.SupplementalAddress1.IsNull() && !plan.SupplementalAddress1.IsUnknown() {
 		values["supplemental_address_1"] = plan.SupplementalAddress1.ValueString()
 	} else {
 		values["supplemental_address_1"] = nil
 	}
-	if !plan.SupplementalAddress2.IsNull() {
+	if !plan.SupplementalAddress2.IsNull() && !plan.SupplementalAddress2.IsUnknown() {
 		values["supplemental_address_2"] = plan.SupplementalAddress2.ValueString()
 	} else {
 		values["supplemental_address_2"] = nil
 	}
-	if !plan.City.IsNull() {
+	if !plan.City.IsNull() && !plan.City.IsUnknown() {
 		values["city"] = plan.City.ValueString()
 	} else {
 		values["city"] = nil
 	}
-	if !plan.PostalCode.IsNull() {
+	if !plan.PostalCode.IsNull() && !plan.PostalCode.IsUnknown() {
 		values["postal_code"] = plan.PostalCode.ValueString()
 	} else {
 		values["postal_code"] = nil
 	}
-	if !plan.StateProvinceID.IsNull() {
+	if !plan.StateProvinceID.IsNull() && !plan.StateProvinceID.IsUnknown() {
 		values["state_province_id"] = plan.StateProvinceID.ValueInt64()
 	} else {
 		values["state_province_id"] = nil
 	}
-	if !plan.CountryID.IsNull() {
+	if !plan.CountryID.IsNull() && !plan.CountryID.IsUnknown() {
 		values["country_id"] = plan.CountryID.ValueInt64()
 	} else {
 		values["country_id"] = nil
 	}
 
-	result, err := r.client.Update("Address", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("Address", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating address",
 			"Could not update address ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error())
@@ -259,6 +259,15 @@ func (r *AddressResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("Address", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Address after update",
+			"Could not re-read Address ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResponseToModel(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

@@ -158,19 +158,19 @@ func (r *ACLResource) Create(ctx context.Context, req resource.CreateRequest, re
 		"deny":         plan.Deny.ValueBool(),
 	}
 
-	if !plan.ObjectID.IsNull() {
+	if !plan.ObjectID.IsNull() && !plan.ObjectID.IsUnknown() {
 		values["object_id"] = plan.ObjectID.ValueInt64()
 	}
 
-	if !plan.AclTable.IsNull() {
+	if !plan.AclTable.IsNull() && !plan.AclTable.IsUnknown() {
 		values["acl_table"] = plan.AclTable.ValueString()
 	}
 
-	if !plan.AclID.IsNull() {
+	if !plan.AclID.IsNull() && !plan.AclID.IsUnknown() {
 		values["acl_id"] = plan.AclID.ValueInt64()
 	}
 
-	if !plan.Priority.IsNull() {
+	if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
 		values["priority"] = plan.Priority.ValueInt64()
 	}
 
@@ -187,6 +187,16 @@ func (r *ACLResource) Create(ctx context.Context, req resource.CreateRequest, re
 	// Update state with response
 	if id, ok := GetInt64(result, "id"); ok {
 		plan.ID = types.Int64Value(id)
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	result, err = r.client.GetByID("ACL", plan.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading ACL after create",
+			"Could not re-read after create: "+err.Error(),
+		)
+		return
 	}
 
 	if name, ok := GetString(result, "name"); ok {
@@ -353,32 +363,32 @@ func (r *ACLResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		"deny":         plan.Deny.ValueBool(),
 	}
 
-	if !plan.ObjectID.IsNull() {
+	if !plan.ObjectID.IsNull() && !plan.ObjectID.IsUnknown() {
 		values["object_id"] = plan.ObjectID.ValueInt64()
 	} else {
 		values["object_id"] = nil
 	}
 
-	if !plan.AclTable.IsNull() {
+	if !plan.AclTable.IsNull() && !plan.AclTable.IsUnknown() {
 		values["acl_table"] = plan.AclTable.ValueString()
 	} else {
 		values["acl_table"] = nil
 	}
 
-	if !plan.AclID.IsNull() {
+	if !plan.AclID.IsNull() && !plan.AclID.IsUnknown() {
 		values["acl_id"] = plan.AclID.ValueInt64()
 	} else {
 		values["acl_id"] = nil
 	}
 
-	if !plan.Priority.IsNull() {
+	if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
 		values["priority"] = plan.Priority.ValueInt64()
 	} else {
 		values["priority"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("ACL", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("ACL", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating ACL",
@@ -389,6 +399,15 @@ func (r *ACLResource) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("ACL", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading ACL after update",
+			"Could not re-read ACL ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 
 	if name, ok := GetString(result, "name"); ok {
 		plan.Name = types.StringValue(name)

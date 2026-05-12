@@ -218,11 +218,11 @@ func (r *CustomGroupResource) Create(ctx context.Context, req resource.CreateReq
 		"is_public":            plan.IsPublic.ValueBool(),
 	}
 
-	if !plan.ExtendsEntityColumnID.IsNull() {
+	if !plan.ExtendsEntityColumnID.IsNull() && !plan.ExtendsEntityColumnID.IsUnknown() {
 		values["extends_entity_column_id"] = plan.ExtendsEntityColumnID.ValueInt64()
 	}
 
-	if !plan.ExtendsEntityColumnValue.IsNull() {
+	if !plan.ExtendsEntityColumnValue.IsNull() && !plan.ExtendsEntityColumnValue.IsUnknown() {
 		var columnValues []string
 		diags = plan.ExtendsEntityColumnValue.ElementsAs(ctx, &columnValues, false)
 		resp.Diagnostics.Append(diags...)
@@ -232,27 +232,27 @@ func (r *CustomGroupResource) Create(ctx context.Context, req resource.CreateReq
 		values["extends_entity_column_value"] = columnValues
 	}
 
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	}
 
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	}
 
-	if !plan.TableName.IsNull() {
+	if !plan.TableName.IsNull() && !plan.TableName.IsUnknown() {
 		values["table_name"] = plan.TableName.ValueString()
 	}
 
-	if !plan.MinMultiple.IsNull() {
+	if !plan.MinMultiple.IsNull() && !plan.MinMultiple.IsUnknown() {
 		values["min_multiple"] = plan.MinMultiple.ValueInt64()
 	}
 
-	if !plan.MaxMultiple.IsNull() {
+	if !plan.MaxMultiple.IsNull() && !plan.MaxMultiple.IsUnknown() {
 		values["max_multiple"] = plan.MaxMultiple.ValueInt64()
 	}
 
-	if !plan.Icon.IsNull() {
+	if !plan.Icon.IsNull() && !plan.Icon.IsUnknown() {
 		values["icon"] = plan.Icon.ValueString()
 	}
 
@@ -264,6 +264,13 @@ func (r *CustomGroupResource) Create(ctx context.Context, req resource.CreateReq
 			"Could not create custom group, unexpected error: "+err.Error(),
 		)
 		return
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("CustomGroup", createdID, nil); err2 == nil {
+			result = fullResult
+		}
 	}
 
 	// Update state with response
@@ -343,13 +350,13 @@ func (r *CustomGroupResource) Update(ctx context.Context, req resource.UpdateReq
 		"is_public":            plan.IsPublic.ValueBool(),
 	}
 
-	if !plan.ExtendsEntityColumnID.IsNull() {
+	if !plan.ExtendsEntityColumnID.IsNull() && !plan.ExtendsEntityColumnID.IsUnknown() {
 		values["extends_entity_column_id"] = plan.ExtendsEntityColumnID.ValueInt64()
 	} else {
 		values["extends_entity_column_id"] = nil
 	}
 
-	if !plan.ExtendsEntityColumnValue.IsNull() {
+	if !plan.ExtendsEntityColumnValue.IsNull() && !plan.ExtendsEntityColumnValue.IsUnknown() {
 		var columnValues []string
 		diags = plan.ExtendsEntityColumnValue.ElementsAs(ctx, &columnValues, false)
 		resp.Diagnostics.Append(diags...)
@@ -361,38 +368,38 @@ func (r *CustomGroupResource) Update(ctx context.Context, req resource.UpdateReq
 		values["extends_entity_column_value"] = nil
 	}
 
-	if !plan.HelpPre.IsNull() {
+	if !plan.HelpPre.IsNull() && !plan.HelpPre.IsUnknown() {
 		values["help_pre"] = plan.HelpPre.ValueString()
 	} else {
 		values["help_pre"] = nil
 	}
 
-	if !plan.HelpPost.IsNull() {
+	if !plan.HelpPost.IsNull() && !plan.HelpPost.IsUnknown() {
 		values["help_post"] = plan.HelpPost.ValueString()
 	} else {
 		values["help_post"] = nil
 	}
 
-	if !plan.MinMultiple.IsNull() {
+	if !plan.MinMultiple.IsNull() && !plan.MinMultiple.IsUnknown() {
 		values["min_multiple"] = plan.MinMultiple.ValueInt64()
 	} else {
 		values["min_multiple"] = nil
 	}
 
-	if !plan.MaxMultiple.IsNull() {
+	if !plan.MaxMultiple.IsNull() && !plan.MaxMultiple.IsUnknown() {
 		values["max_multiple"] = plan.MaxMultiple.ValueInt64()
 	} else {
 		values["max_multiple"] = nil
 	}
 
-	if !plan.Icon.IsNull() {
+	if !plan.Icon.IsNull() && !plan.Icon.IsUnknown() {
 		values["icon"] = plan.Icon.ValueString()
 	} else {
 		values["icon"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("CustomGroup", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("CustomGroup", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating custom group",
@@ -403,6 +410,15 @@ func (r *CustomGroupResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("CustomGroup", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading CustomGroup after update",
+			"Could not re-read CustomGroup ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	var d diag.Diagnostics
 	r.mapResponseToModel(ctx, result, &plan, &d)
 	resp.Diagnostics.Append(d...)
@@ -471,7 +487,7 @@ func (r *CustomGroupResource) mapResponseToModel(ctx context.Context, result map
 		model.Extends = types.StringValue(extends)
 	}
 
-	if columnID, ok := GetInt64(result, "extends_entity_column_id"); ok {
+	if columnID, ok := GetInt64(result, "extends_entity_column_id"); ok && columnID != 0 {
 		model.ExtendsEntityColumnID = types.Int64Value(columnID)
 	} else {
 		model.ExtendsEntityColumnID = types.Int64Null()
@@ -482,7 +498,7 @@ func (r *CustomGroupResource) mapResponseToModel(ctx context.Context, result map
 		if columnValueSlice, ok := columnValueRaw.([]any); ok {
 			values := make([]string, 0, len(columnValueSlice))
 			for _, v := range columnValueSlice {
-				if s, ok := v.(string); ok {
+				if s, ok := v.(string); ok && s != "null" {
 					values = append(values, s)
 				}
 			}
@@ -536,13 +552,13 @@ func (r *CustomGroupResource) mapResponseToModel(ctx context.Context, result map
 		model.IsMultiple = types.BoolValue(isMultiple)
 	}
 
-	if minMultiple, ok := GetInt64(result, "min_multiple"); ok {
+	if minMultiple, ok := GetInt64(result, "min_multiple"); ok && minMultiple != 0 {
 		model.MinMultiple = types.Int64Value(minMultiple)
 	} else {
 		model.MinMultiple = types.Int64Null()
 	}
 
-	if maxMultiple, ok := GetInt64(result, "max_multiple"); ok {
+	if maxMultiple, ok := GetInt64(result, "max_multiple"); ok && maxMultiple != 0 {
 		model.MaxMultiple = types.Int64Value(maxMultiple)
 	} else {
 		model.MaxMultiple = types.Int64Null()

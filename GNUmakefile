@@ -47,6 +47,10 @@ endif
 test:
 	go test -v ./...
 
+# Run acceptance tests against a live CiviCRM instance (requires CIVICRM_URL and CIVICRM_API_KEY)
+testacc:
+	TF_ACC=1 go test -v ./internal/provider/... -timeout 120m
+
 # Format code
 fmt:
 	go fmt ./...

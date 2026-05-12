@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -35,7 +34,7 @@ type ACLRoleResourceModel struct {
 	Description types.String `tfsdk:"description"`
 	IsActive    types.Bool   `tfsdk:"is_active"`
 	Weight      types.Int64  `tfsdk:"weight"`
-	Value       types.String `tfsdk:"value"`
+	Value       types.Int64  `tfsdk:"value"`
 }
 
 func NewACLRoleResource() resource.Resource {
@@ -80,12 +79,12 @@ func (r *ACLRoleResource) Schema(ctx context.Context, req resource.SchemaRequest
 				Optional:    true,
 				Computed:    true,
 			},
-			"value": schema.StringAttribute{
-				Description: "The value of the ACL role (used internally by CiviCRM to link ACL rules and entity roles). If not specified, CiviCRM auto-generates it. Use this value when referencing the role in civicrm_acl and civicrm_acl_entity_role resources.",
+			"value": schema.Int64Attribute{
+				Description: "The numeric value of the ACL role used by CiviCRM to link ACL rules and entity roles. If not specified, CiviCRM auto-generates it. Reference this as acl_role_id in civicrm_acl and civicrm_acl_entity_role.",
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 		},
@@ -141,16 +140,16 @@ func (r *ACLRoleResource) Create(ctx context.Context, req resource.CreateRequest
 		"is_active":       plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
 
-	if !plan.Value.IsNull() {
-		values["value"] = plan.Value.ValueString()
+	if !plan.Value.IsNull() && !plan.Value.IsUnknown() {
+		values["value"] = plan.Value.ValueInt64()
 	}
 
 	// Call API
@@ -166,6 +165,16 @@ func (r *ACLRoleResource) Create(ctx context.Context, req resource.CreateRequest
 	// Update state with response
 	if id, ok := GetInt64(result, "id"); ok {
 		plan.ID = types.Int64Value(id)
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	result, err = r.client.GetByID("OptionValue", plan.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading OptionValue after create",
+			"Could not re-read after create: "+err.Error(),
+		)
+		return
 	}
 
 	if name, ok := GetString(result, "name"); ok {
@@ -190,10 +199,10 @@ func (r *ACLRoleResource) Create(ctx context.Context, req resource.CreateRequest
 		plan.Weight = types.Int64Value(weight)
 	}
 
-	if value, ok := GetString(result, "value"); ok {
-		plan.Value = types.StringValue(value)
+	if value, ok := GetInt64(result, "value"); ok {
+		plan.Value = types.Int64Value(value)
 	} else {
-		plan.Value = types.StringNull()
+		plan.Value = types.Int64Null()
 	}
 
 	tflog.Debug(ctx, "Created ACL role", map[string]any{
@@ -248,8 +257,10 @@ func (r *ACLRoleResource) Read(ctx context.Context, req resource.ReadRequest, re
 		state.Weight = types.Int64Value(weight)
 	}
 
-	if value, ok := GetString(result, "value"); ok {
-		state.Value = types.StringValue(value)
+	if value, ok := GetInt64(result, "value"); ok {
+		state.Value = types.Int64Value(value)
+	} else {
+		state.Value = types.Int64Null()
 	}
 
 	diags = resp.State.Set(ctx, state)
@@ -282,22 +293,22 @@ func (r *ACLRoleResource) Update(ctx context.Context, req resource.UpdateRequest
 		"is_active": plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
 
-	if !plan.Value.IsNull() {
-		values["value"] = plan.Value.ValueString()
+	if !plan.Value.IsNull() && !plan.Value.IsUnknown() {
+		values["value"] = plan.Value.ValueInt64()
 	}
 
 	// Call API
-	result, err := r.client.Update("OptionValue", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("OptionValue", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating ACL role",
@@ -308,6 +319,15 @@ func (r *ACLRoleResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("OptionValue", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading OptionValue after update",
+			"Could not re-read OptionValue ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 
 	if name, ok := GetString(result, "name"); ok {
 		plan.Name = types.StringValue(name)
@@ -331,10 +351,10 @@ func (r *ACLRoleResource) Update(ctx context.Context, req resource.UpdateRequest
 		plan.Weight = types.Int64Value(weight)
 	}
 
-	if value, ok := GetString(result, "value"); ok {
-		plan.Value = types.StringValue(value)
+	if value, ok := GetInt64(result, "value"); ok {
+		plan.Value = types.Int64Value(value)
 	} else {
-		plan.Value = types.StringNull()
+		plan.Value = types.Int64Null()
 	}
 
 	tflog.Debug(ctx, "Updated ACL role", map[string]any{

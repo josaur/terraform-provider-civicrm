@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  db:
+    hostname: db
+    image: mariadb:10.11
+    restart: unless-stopped
+    volumes:
+      - db:/var/lib/mysql
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_DATABASE: civicrm
+      MYSQL_USER: civicrm
+      MYSQL_PASSWORD: pass
+
+  civi:
+    hostname: civi
+    image: civicrm/civicrm:6.6
+    ports:
+      - 8760:80 # CiviCRM will be available on port 8760.
+    restart: unless-stopped
+    volumes:
+      - private:/var/www/html/private
+      - public:/var/www/html/public
+      - ext:/var/www/html/ext
+    environment:
+      CIVICRM_DB_HOST: db
+      CIVICRM_DB_PORT: 3306
+      CIVICRM_DB_NAME: civicrm
+      CIVICRM_DB_USER: civicrm
+      CIVICRM_DB_PASSWORD: pass
+      # CIVICRM_DSN: mysql://civicrm:${MYSQL_PASSWORD}@db:3306/civicrm # Note: you can also pass database credentials as a DSN.
+      CIVICRM_UF_BASEURL: http://localhost:8760
+      # Admin-Zugang für den Installer:
+      CIVICRM_ADMIN_USER: admin
+      CIVICRM_ADMIN_PASS: admin
+
+volumes:
+  private:
+  public:
+  ext:
+  db:

@@ -129,13 +129,13 @@ func (r *CiviRulesRuleResource) Create(ctx context.Context, req resource.CreateR
 		"is_active": plan.IsActive.ValueBool(),
 		"is_debug":  plan.IsDebug.ValueBool(),
 	}
-	if !plan.TriggerParams.IsNull() && plan.TriggerParams.ValueString() != "" {
+	if !plan.TriggerParams.IsNull() && !plan.TriggerParams.IsUnknown() && plan.TriggerParams.ValueString() != "" {
 		values["trigger_params"] = plan.TriggerParams.ValueString()
 	}
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
-	if !plan.HelpText.IsNull() {
+	if !plan.HelpText.IsNull() && !plan.HelpText.IsUnknown() {
 		values["help_text"] = plan.HelpText.ValueString()
 	}
 
@@ -145,6 +145,13 @@ func (r *CiviRulesRuleResource) Create(ctx context.Context, req resource.CreateR
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("CiviRulesRule", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 	tflog.Debug(ctx, "Created CiviRulesRule", map[string]any{"id": plan.ID.ValueInt64()})
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
@@ -187,23 +194,23 @@ func (r *CiviRulesRuleResource) Update(ctx context.Context, req resource.UpdateR
 		"is_active":  plan.IsActive.ValueBool(),
 		"is_debug":   plan.IsDebug.ValueBool(),
 	}
-	if !plan.TriggerParams.IsNull() && plan.TriggerParams.ValueString() != "" {
+	if !plan.TriggerParams.IsNull() && !plan.TriggerParams.IsUnknown() && plan.TriggerParams.ValueString() != "" {
 		values["trigger_params"] = plan.TriggerParams.ValueString()
 	} else {
 		values["trigger_params"] = nil
 	}
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
-	if !plan.HelpText.IsNull() {
+	if !plan.HelpText.IsNull() && !plan.HelpText.IsUnknown() {
 		values["help_text"] = plan.HelpText.ValueString()
 	} else {
 		values["help_text"] = nil
 	}
 
-	result, err := r.client.Update("CiviRulesRule", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("CiviRulesRule", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError("Error updating CiviRulesRule",
 			"Could not update CiviRulesRule ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error())
@@ -211,6 +218,15 @@ func (r *CiviRulesRuleResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("CiviRulesRule", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading CiviRulesRule after update",
+			"Could not re-read CiviRulesRule ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }

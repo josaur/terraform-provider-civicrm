@@ -144,19 +144,19 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
 		"is_tagset":     plan.IsTagset.ValueBool(),
 	}
 
-	if !plan.Label.IsNull() {
+	if !plan.Label.IsNull() && !plan.Label.IsUnknown() {
 		values["label"] = plan.Label.ValueString()
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
 
-	if !plan.ParentID.IsNull() {
+	if !plan.ParentID.IsNull() && !plan.ParentID.IsUnknown() {
 		values["parent_id"] = plan.ParentID.ValueInt64()
 	}
 
-	if !plan.UsedFor.IsNull() {
+	if !plan.UsedFor.IsNull() && !plan.UsedFor.IsUnknown() {
 		var usedFor []string
 		diags = plan.UsedFor.ElementsAs(ctx, &usedFor, false)
 		resp.Diagnostics.Append(diags...)
@@ -166,7 +166,7 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
 		values["used_for"] = usedFor
 	}
 
-	if !plan.Color.IsNull() {
+	if !plan.Color.IsNull() && !plan.Color.IsUnknown() {
 		values["color"] = plan.Color.ValueString()
 	}
 
@@ -178,6 +178,13 @@ func (r *TagResource) Create(ctx context.Context, req resource.CreateRequest, re
 			"Could not create tag, unexpected error: "+err.Error(),
 		)
 		return
+	}
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("Tag", createdID, nil); err2 == nil {
+			result = fullResult
+		}
 	}
 
 	// Update state with response
@@ -250,25 +257,25 @@ func (r *TagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		"is_tagset":     plan.IsTagset.ValueBool(),
 	}
 
-	if !plan.Label.IsNull() {
+	if !plan.Label.IsNull() && !plan.Label.IsUnknown() {
 		values["label"] = plan.Label.ValueString()
 	} else {
 		values["label"] = nil
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
 
-	if !plan.ParentID.IsNull() {
+	if !plan.ParentID.IsNull() && !plan.ParentID.IsUnknown() {
 		values["parent_id"] = plan.ParentID.ValueInt64()
 	} else {
 		values["parent_id"] = nil
 	}
 
-	if !plan.UsedFor.IsNull() {
+	if !plan.UsedFor.IsNull() && !plan.UsedFor.IsUnknown() {
 		var usedFor []string
 		diags = plan.UsedFor.ElementsAs(ctx, &usedFor, false)
 		resp.Diagnostics.Append(diags...)
@@ -280,14 +287,14 @@ func (r *TagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		values["used_for"] = nil
 	}
 
-	if !plan.Color.IsNull() {
+	if !plan.Color.IsNull() && !plan.Color.IsUnknown() {
 		values["color"] = plan.Color.ValueString()
 	} else {
 		values["color"] = nil
 	}
 
 	// Call API
-	result, err := r.client.Update("Tag", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("Tag", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating tag",
@@ -298,6 +305,15 @@ func (r *TagResource) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	// Update state
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("Tag", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading Tag after update",
+			"Could not re-read Tag ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	var d diag.Diagnostics
 	r.mapResponseToModel(ctx, result, &plan, &d)
 	resp.Diagnostics.Append(d...)

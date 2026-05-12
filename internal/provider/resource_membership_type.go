@@ -199,40 +199,40 @@ func (r *MembershipTypeResource) Create(ctx context.Context, req resource.Create
 		"is_active":           plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	}
-	if !plan.MinimumFee.IsNull() {
+	if !plan.MinimumFee.IsNull() && !plan.MinimumFee.IsUnknown() {
 		values["minimum_fee"] = plan.MinimumFee.ValueFloat64()
 	}
-	if !plan.DurationInterval.IsNull() {
+	if !plan.DurationInterval.IsNull() && !plan.DurationInterval.IsUnknown() {
 		values["duration_interval"] = plan.DurationInterval.ValueInt64()
 	}
-	if !plan.FixedPeriodStartDay.IsNull() {
+	if !plan.FixedPeriodStartDay.IsNull() && !plan.FixedPeriodStartDay.IsUnknown() {
 		values["fixed_period_start_day"] = plan.FixedPeriodStartDay.ValueInt64()
 	}
-	if !plan.FixedPeriodRolloverDay.IsNull() {
+	if !plan.FixedPeriodRolloverDay.IsNull() && !plan.FixedPeriodRolloverDay.IsUnknown() {
 		values["fixed_period_rollover_day"] = plan.FixedPeriodRolloverDay.ValueInt64()
 	}
-	if !plan.RelationshipTypeID.IsNull() {
+	if !plan.RelationshipTypeID.IsNull() && !plan.RelationshipTypeID.IsUnknown() {
 		values["relationship_type_id"] = plan.RelationshipTypeID.ValueInt64()
 	}
-	if !plan.RelationshipDirection.IsNull() {
+	if !plan.RelationshipDirection.IsNull() && !plan.RelationshipDirection.IsUnknown() {
 		values["relationship_direction"] = plan.RelationshipDirection.ValueString()
 	}
-	if !plan.MaxRelated.IsNull() {
+	if !plan.MaxRelated.IsNull() && !plan.MaxRelated.IsUnknown() {
 		values["max_related"] = plan.MaxRelated.ValueInt64()
 	}
-	if !plan.Visibility.IsNull() {
+	if !plan.Visibility.IsNull() && !plan.Visibility.IsUnknown() {
 		values["visibility"] = plan.Visibility.ValueString()
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	}
-	if !plan.ReceiptTextSignup.IsNull() {
+	if !plan.ReceiptTextSignup.IsNull() && !plan.ReceiptTextSignup.IsUnknown() {
 		values["receipt_text_signup"] = plan.ReceiptTextSignup.ValueString()
 	}
-	if !plan.ReceiptTextRenewal.IsNull() {
+	if !plan.ReceiptTextRenewal.IsNull() && !plan.ReceiptTextRenewal.IsUnknown() {
 		values["receipt_text_renewal"] = plan.ReceiptTextRenewal.ValueString()
 	}
 
@@ -245,6 +245,13 @@ func (r *MembershipTypeResource) Create(ctx context.Context, req resource.Create
 		return
 	}
 
+
+	// Re-read to get complete state (Create response is sparse)
+	if createdID, ok := GetInt64(result, "id"); ok {
+		if fullResult, err2 := r.client.GetByID("MembershipType", createdID, nil); err2 == nil {
+			result = fullResult
+		}
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Created MembershipType", map[string]any{"id": plan.ID.ValueInt64()})
@@ -305,68 +312,68 @@ func (r *MembershipTypeResource) Update(ctx context.Context, req resource.Update
 		"is_active":           plan.IsActive.ValueBool(),
 	}
 
-	if !plan.Description.IsNull() {
+	if !plan.Description.IsNull() && !plan.Description.IsUnknown() {
 		values["description"] = plan.Description.ValueString()
 	} else {
 		values["description"] = nil
 	}
-	if !plan.MinimumFee.IsNull() {
+	if !plan.MinimumFee.IsNull() && !plan.MinimumFee.IsUnknown() {
 		values["minimum_fee"] = plan.MinimumFee.ValueFloat64()
 	} else {
 		values["minimum_fee"] = nil
 	}
-	if !plan.DurationInterval.IsNull() {
+	if !plan.DurationInterval.IsNull() && !plan.DurationInterval.IsUnknown() {
 		values["duration_interval"] = plan.DurationInterval.ValueInt64()
 	} else {
 		values["duration_interval"] = nil
 	}
-	if !plan.FixedPeriodStartDay.IsNull() {
+	if !plan.FixedPeriodStartDay.IsNull() && !plan.FixedPeriodStartDay.IsUnknown() {
 		values["fixed_period_start_day"] = plan.FixedPeriodStartDay.ValueInt64()
 	} else {
 		values["fixed_period_start_day"] = nil
 	}
-	if !plan.FixedPeriodRolloverDay.IsNull() {
+	if !plan.FixedPeriodRolloverDay.IsNull() && !plan.FixedPeriodRolloverDay.IsUnknown() {
 		values["fixed_period_rollover_day"] = plan.FixedPeriodRolloverDay.ValueInt64()
 	} else {
 		values["fixed_period_rollover_day"] = nil
 	}
-	if !plan.RelationshipTypeID.IsNull() {
+	if !plan.RelationshipTypeID.IsNull() && !plan.RelationshipTypeID.IsUnknown() {
 		values["relationship_type_id"] = plan.RelationshipTypeID.ValueInt64()
 	} else {
 		values["relationship_type_id"] = nil
 	}
-	if !plan.RelationshipDirection.IsNull() {
+	if !plan.RelationshipDirection.IsNull() && !plan.RelationshipDirection.IsUnknown() {
 		values["relationship_direction"] = plan.RelationshipDirection.ValueString()
 	} else {
 		values["relationship_direction"] = nil
 	}
-	if !plan.MaxRelated.IsNull() {
+	if !plan.MaxRelated.IsNull() && !plan.MaxRelated.IsUnknown() {
 		values["max_related"] = plan.MaxRelated.ValueInt64()
 	} else {
 		values["max_related"] = nil
 	}
-	if !plan.Visibility.IsNull() {
+	if !plan.Visibility.IsNull() && !plan.Visibility.IsUnknown() {
 		values["visibility"] = plan.Visibility.ValueString()
 	} else {
 		values["visibility"] = nil
 	}
-	if !plan.Weight.IsNull() {
+	if !plan.Weight.IsNull() && !plan.Weight.IsUnknown() {
 		values["weight"] = plan.Weight.ValueInt64()
 	} else {
 		values["weight"] = nil
 	}
-	if !plan.ReceiptTextSignup.IsNull() {
+	if !plan.ReceiptTextSignup.IsNull() && !plan.ReceiptTextSignup.IsUnknown() {
 		values["receipt_text_signup"] = plan.ReceiptTextSignup.ValueString()
 	} else {
 		values["receipt_text_signup"] = nil
 	}
-	if !plan.ReceiptTextRenewal.IsNull() {
+	if !plan.ReceiptTextRenewal.IsNull() && !plan.ReceiptTextRenewal.IsUnknown() {
 		values["receipt_text_renewal"] = plan.ReceiptTextRenewal.ValueString()
 	} else {
 		values["receipt_text_renewal"] = nil
 	}
 
-	result, err := r.client.Update("MembershipType", state.ID.ValueInt64(), values)
+	_, err := r.client.Update("MembershipType", state.ID.ValueInt64(), values)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating MembershipType",
@@ -376,6 +383,15 @@ func (r *MembershipTypeResource) Update(ctx context.Context, req resource.Update
 	}
 
 	plan.ID = state.ID
+
+	result, err := r.client.GetByID("MembershipType", state.ID.ValueInt64(), nil)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading MembershipType after update",
+			"Could not re-read MembershipType ID "+strconv.FormatInt(state.ID.ValueInt64(), 10)+": "+err.Error(),
+		)
+		return
+	}
 	r.mapResultToState(result, &plan)
 
 	tflog.Debug(ctx, "Updated MembershipType", map[string]any{"id": plan.ID.ValueInt64()})
@@ -445,9 +461,13 @@ func (r *MembershipTypeResource) mapResultToState(result map[string]any, model *
 	if v, ok := result["minimum_fee"]; ok && v != nil {
 		switch val := v.(type) {
 		case float64:
-			model.MinimumFee = types.Float64Value(val)
+			if val != 0 {
+				model.MinimumFee = types.Float64Value(val)
+			} else {
+				model.MinimumFee = types.Float64Null()
+			}
 		case string:
-			if f, err := strconv.ParseFloat(val, 64); err == nil {
+			if f, err := strconv.ParseFloat(val, 64); err == nil && f != 0 {
 				model.MinimumFee = types.Float64Value(f)
 			} else {
 				model.MinimumFee = types.Float64Null()
