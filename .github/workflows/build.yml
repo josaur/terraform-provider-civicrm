@@ -90,7 +90,7 @@ jobs:
 
       - name: Enable required CiviCRM extensions
         run: |
-          docker compose exec -T civi cv en org.civicrm.civicase org.civicoop.civirules
+          docker compose exec -T civi cv en civi_case civirules
 
       - name: Create API key for admin user
         id: apikey
