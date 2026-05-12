@@ -36,8 +36,83 @@ jobs:
       - name: Build
         run: go build -v ./...
 
-      - name: Run tests
+      - name: Run unit tests
         run: go test -v ./...
+
+  acceptance-tests:
+    name: Acceptance Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Start CiviCRM stack
+        run: docker compose up -d
+
+      - name: Wait for MariaDB
+        run: |
+          for i in $(seq 1 30); do
+            docker compose exec -T db mysqladmin ping -h 127.0.0.1 -u civicrm -ppass --silent && break
+            echo "Waiting for DB... ($i/30)"
+            sleep 5
+          done
+
+      - name: Install CiviCRM
+        run: |
+          # Wait until Apache inside the container is up
+          for i in $(seq 1 30); do
+            docker compose exec -T civi curl -sf http://localhost/ > /dev/null 2>&1 && break
+            echo "Waiting for web server... ($i/30)"
+            sleep 5
+          done
+
+          docker compose exec -T civi \
+            cv core:install \
+              --db="mysql://civicrm:pass@db:3306/civicrm" \
+              -m "cmsBaseUrl=http://localhost:8760" \
+              --lang=en_US \
+              --force \
+              -n
+
+      - name: Create API key for admin user
+        id: apikey
+        run: |
+          API_KEY=$(openssl rand -hex 16)
+
+          # The installer creates a default admin user; find its contact ID
+          CONTACT_ID=$(docker compose exec -T civi \
+            cv api4 Contact.get \
+              --in='{"select":["id"],"where":[["contact_type","=","Individual"]],"orderBy":{"id":"ASC"},"limit":1}' \
+              --out=json \
+            | python3 -c 'import sys,json; print(json.load(sys.stdin)["values"][0]["id"])')
+
+          # Assign the API key via UFMatch (the CiviCRM user-contact link table)
+          docker compose exec -T civi \
+            cv api4 UFMatch.save \
+              --in="{\"records\":[{\"api_key\":\"${API_KEY}\",\"contact_id\":${CONTACT_ID}}],\"match\":[\"contact_id\"]}" \
+              --out=json
+
+          echo "CIVICRM_API_KEY=${API_KEY}" >> "$GITHUB_OUTPUT"
+
+      - name: Run acceptance tests
+        env:
+          TF_ACC: "1"
+          CIVICRM_URL: "http://localhost:8760"
+          CIVICRM_API_KEY: ${{ steps.apikey.outputs.CIVICRM_API_KEY }}
+        run: go test -v -timeout 30m ./internal/provider/...
+
+      - name: Stop CiviCRM stack
+        if: always()
+        run: docker compose down -v
 
   lint:
     name: Lint
@@ -57,9 +132,10 @@ jobs:
         with:
           version: latest
 
-  # Build for multiple platforms to ensure cross-platform compatibility
+  # Build for multiple platforms — only runs after acceptance tests pass
   build-matrix:
     name: Build (${{ matrix.os }}-${{ matrix.arch }})
+    needs: [build, acceptance-tests, lint]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
