@@ -90,7 +90,35 @@ jobs:
 
       - name: Enable required CiviCRM extensions
         run: |
-          docker compose exec -T civi cv en civi_case civirules
+          docker compose exec -T civi cv dl \
+            civirules \
+            eck \
+            logviewer
+          docker compose exec -T civi cv en \
+            afform \
+            authx \
+            civi_campaign \
+            civi_case \
+            civi_contribute \
+            civi_event \
+            civi_mail \
+            civi_member \
+            civi_pledge \
+            civi_report \
+            civiimport \
+            civirules \
+            ckeditor4 \
+            eck \
+            flexmailer \
+            greenwich \
+            legacybatchentry \
+            logviewer \
+            message_admin \
+            recaptcha \
+            riverlea \
+            search_kit \
+            sequentialcreditnotes \
+            standaloneusers
 
       - name: Create API key for admin user
         id: apikey
