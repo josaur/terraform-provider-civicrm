@@ -24,7 +24,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
           cache: true
 
       - name: Download dependencies
@@ -49,7 +49,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
           cache: true
 
       - name: Download dependencies
@@ -92,7 +92,6 @@ jobs:
         run: |
           docker compose exec -T civi cv dl \
             civirules \
-            eck \
             logviewer
           docker compose exec -T civi cv en \
             afform \
@@ -107,8 +106,7 @@ jobs:
             civi_report \
             civiimport \
             civirules \
-            ckeditor4 \
-            eck \
+            ckeditor4  \
             flexmailer \
             greenwich \
             legacybatchentry \
@@ -192,7 +190,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
           cache: true
 
       - name: Download dependencies
