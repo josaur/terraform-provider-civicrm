@@ -83,6 +83,11 @@ jobs:
               --force \
               -n
 
+      - name: Fix CiviCRM cache directory permissions
+        run: |
+          docker compose exec -T civi chown -R www-data:www-data /var/www/html/private
+          docker compose exec -T civi chmod -R 755 /var/www/html/private
+
       - name: Create API key for admin user
         id: apikey
         run: |
