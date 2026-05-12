@@ -88,6 +88,10 @@ jobs:
           docker compose exec -T civi chown -R www-data:www-data /var/www/html/private
           docker compose exec -T civi chmod -R 755 /var/www/html/private
 
+      - name: Enable required CiviCRM extensions
+        run: |
+          docker compose exec -T civi cv en org.civicrm.civicase org.civicoop.civirules
+
       - name: Create API key for admin user
         id: apikey
         run: |
@@ -126,11 +130,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
-          cache: true
+          go-version: stable
+          cache: false
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v4
+        uses: golangci/golangci-lint-action@v6
         with:
           version: latest
 
