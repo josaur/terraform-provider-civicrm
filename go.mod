@@ -2,6 +2,8 @@ module github.com/Caritas-Deutschland-Digitallabor/civicrm-terraform
 
 go 1.24
 
+toolchain go1.24.0
+
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
