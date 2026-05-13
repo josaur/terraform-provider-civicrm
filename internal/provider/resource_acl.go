@@ -109,8 +109,7 @@ func (r *ACLResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				Optional:    true,
 			},
 			"priority": schema.Int64Attribute{
-				Description: "The priority of the ACL rule (higher priority rules are evaluated first).",
-				Optional:    true,
+				Description: "The priority of the ACL rule, auto-assigned by CiviCRM. Read-only.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
@@ -171,10 +170,6 @@ func (r *ACLResource) Create(ctx context.Context, req resource.CreateRequest, re
 
 	if !plan.AclID.IsNull() && !plan.AclID.IsUnknown() {
 		values["acl_id"] = plan.AclID.ValueInt64()
-	}
-
-	if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
-		values["priority"] = plan.Priority.ValueInt64()
 	}
 
 	// Call API
@@ -382,12 +377,6 @@ func (r *ACLResource) Update(ctx context.Context, req resource.UpdateRequest, re
 		values["acl_id"] = plan.AclID.ValueInt64()
 	} else {
 		values["acl_id"] = nil
-	}
-
-	if !plan.Priority.IsNull() && !plan.Priority.IsUnknown() {
-		values["priority"] = plan.Priority.ValueInt64()
-	} else {
-		values["priority"] = nil
 	}
 
 	// Call API
