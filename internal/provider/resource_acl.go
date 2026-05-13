@@ -112,6 +112,9 @@ func (r *ACLResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				Description: "The priority of the ACL rule (higher priority rules are evaluated first).",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
