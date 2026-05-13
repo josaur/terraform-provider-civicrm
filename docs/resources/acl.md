@@ -46,6 +46,8 @@ resource "civicrm_acl" "admins_edit_all" {
 
 ~> **Note:** `entity_id` must reference the ACL role's `value` attribute, not its `id`. These are different numbers — `value` is the internal role identifier CiviCRM uses to link ACL rules to roles.
 
+~> **Note:** `priority` is read-only and cannot be set via Terraform. CiviCRM manages priorities as an ordered list using its internal weight system — values sent via the API are ignored. To change the evaluation order of ACL rules, use the CiviCRM UI.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -62,13 +64,13 @@ The following arguments are supported:
 
 - `deny` (Boolean) Whether this rule denies (rather than grants) the operation. Default: `false`.
 - `is_active` (Boolean) Whether this ACL rule is active. Default: `true`.
-- `priority` (Number) The priority of this rule (higher numbers take precedence). Default: `0`.
 
 ## Attributes Reference
 
 In addition to all arguments above, the following attributes are exported:
 
 - `id` (Number) The unique identifier of the ACL rule.
+- `priority` (Number) The evaluation priority of this rule, auto-assigned by CiviCRM. Read-only — use the CiviCRM UI to change the order.
 
 ## Import
 

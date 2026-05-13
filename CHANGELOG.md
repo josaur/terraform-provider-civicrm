@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated provider source from `registry.terraform.io/example/civicrm` to `Caritas-Deutschland-Digitallabor/civicrm`
 - Improved README with clear instructions for using the provider from GitHub releases
 - Updated all examples to use the correct provider source
+- **`civicrm_acl`**: `priority` is now a read-only computed attribute. CiviCRM manages ACL priorities via an internal weight system that cannot be controlled through the API — any value sent was silently ignored and a new value assigned, causing "inconsistent result after apply" errors on update. Remove `priority = ...` from existing `civicrm_acl` resource blocks before upgrading.
 
 ## [0.1.0] - Initial Release (Planned)
 
