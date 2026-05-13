@@ -10,7 +10,9 @@ func TestAccACLEntityRoleResource(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             checkDestroyByID(t, "ACLEntityRole", "civicrm_acl_entity_role"),
 		Steps: []resource.TestStep{
+			// Create: verify all set fields land in DB.
 			{
 				Config: providerConfig() + `
 resource "civicrm_group" "entity_role_test" {
@@ -34,12 +36,41 @@ resource "civicrm_acl_entity_role" "test" {
 					resource.TestCheckResourceAttrSet("civicrm_acl_entity_role.test", "id"),
 					resource.TestCheckResourceAttr("civicrm_acl_entity_role.test", "entity_table", "civicrm_group"),
 					resource.TestCheckResourceAttr("civicrm_acl_entity_role.test", "is_active", "true"),
+					checkEntityAttr(t, "ACLEntityRole", "civicrm_acl_entity_role.test", "id", "entity_table", "civicrm_group"),
+					checkEntityAttr(t, "ACLEntityRole", "civicrm_acl_entity_role.test", "id", "is_active", "true"),
 				),
 			},
+			// Import
 			{
 				ResourceName:      "civicrm_acl_entity_role.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+			// Update is_active: must be persisted in DB.
+			{
+				Config: providerConfig() + `
+resource "civicrm_group" "entity_role_test" {
+  name  = "tf_acc_entity_role_group"
+  title = "TF Acceptance Entity Role Group"
+}
+
+resource "civicrm_acl_role" "entity_role_test" {
+  name  = "tf_acc_entity_role_role"
+  label = "TF Acceptance Entity Role ACL Role"
+  value = 99
+}
+
+resource "civicrm_acl_entity_role" "test" {
+  acl_role_id  = civicrm_acl_role.entity_role_test.value
+  entity_table = "civicrm_group"
+  entity_id    = civicrm_group.entity_role_test.id
+  is_active    = false
+}`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("civicrm_acl_entity_role.test", "is_active", "false"),
+					checkEntityAttr(t, "ACLEntityRole", "civicrm_acl_entity_role.test", "id", "is_active", "false"),
+					checkEntityAttr(t, "ACLEntityRole", "civicrm_acl_entity_role.test", "id", "entity_table", "civicrm_group"),
+				),
 			},
 		},
 	})
