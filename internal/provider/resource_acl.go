@@ -32,12 +32,19 @@ var validACLOperations = []string{"Edit", "View", "Create", "Delete", "Search", 
 // Source: CiviCRM admin UI and existing acceptance tests.
 var validACLEntityTables = []string{"civicrm_acl_role", "civicrm_group"}
 
-// validACLObjectTables lists the object types that CiviCRM's ACL engine actually evaluates.
-// Source: CRM/ACL/BAO/ACL.php::getObjectTableOptions() in CiviCRM 6.6.
-// Any other value is silently stored but never enforced — use terraform validate to catch this early.
-// Note: civicrm_group covers both static groups AND smart groups (smart groups are stored as
-// civicrm_group rows with a saved_search_id column; there is no separate civicrm_saved_search object type).
-// Note: civicrm_event requires the CiviEvent component to be enabled.
+// validACLObjectTables are the only object_table values that CiviCRM's ACL engine actively enforces.
+// Verified against CiviCRM 6.6 source:
+//
+//	CRM/ACL/BAO/ACL.php::getObjectTableOptions()   – canonical enum definition
+//	CRM/Core/Permission.php::customGroup()         – enforces civicrm_custom_group
+//	CRM/Core/Permission.php::ufGroup()             – enforces civicrm_uf_group
+//	CRM/Core/Permission.php::event()               – enforces civicrm_event
+//	CRM/ACL/BAO/ACL.php::whereClause()             – enforces civicrm_group (contact access)
+//
+// Any other value (e.g. civicrm_saved_search) is silently accepted by the API but never evaluated
+// by the ACL engine. Smart groups are civicrm_group rows with a saved_search_id column — there is
+// no separate civicrm_saved_search object type.
+// civicrm_event requires the CiviEvent component (cv en civi_event).
 var validACLObjectTables = []string{
 	"civicrm_group",
 	"civicrm_uf_group",
