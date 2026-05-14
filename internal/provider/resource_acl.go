@@ -12,15 +12,32 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
 
 var (
-	_ resource.Resource                = &ACLResource{}
-	_ resource.ResourceWithConfigure   = &ACLResource{}
-	_ resource.ResourceWithImportState = &ACLResource{}
+	_ resource.Resource                  = &ACLResource{}
+	_ resource.ResourceWithConfigure     = &ACLResource{}
+	_ resource.ResourceWithImportState   = &ACLResource{}
+	_ resource.ResourceWithValidateConfig = &ACLResource{}
 )
+
+// validACLOperations lists the operations accepted by CiviCRM's ACL engine.
+var validACLOperations = []string{"Edit", "View", "Create", "Delete", "Search", "All"}
+
+// validACLEntityTables lists the entity_table values supported for ACL ownership.
+var validACLEntityTables = []string{"civicrm_acl_role", "civicrm_group"}
+
+// validACLObjectTables lists the object types that CiviCRM ACLs can permission.
+var validACLObjectTables = []string{
+	"civicrm_group",
+	"civicrm_saved_search",
+	"civicrm_uf_group",
+	"civicrm_custom_group",
+	"civicrm_event",
+}
 
 // ACLResource manages ACL rules in CiviCRM.
 // ACL rules define what operations a role can perform on specific data.
@@ -65,24 +82,39 @@ func (r *ACLResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 			"name": schema.StringAttribute{
 				Description: "The name of the ACL rule.",
 				Required:    true,
+				Validators: []validator.String{
+					stringLengthAtLeast(1),
+				},
 			},
 			"entity_table": schema.StringAttribute{
 				Description: "The entity table that owns this ACL (typically 'civicrm_acl_role'). Default: 'civicrm_acl_role'.",
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString("civicrm_acl_role"),
+				Validators: []validator.String{
+					stringOneOf(validACLEntityTables...),
+				},
 			},
 			"entity_id": schema.Int64Attribute{
 				Description: "The value field of the ACL role this rule belongs to. Use tonumber(civicrm_acl_role.example.value) to reference an ACL role.",
 				Required:    true,
+				Validators: []validator.Int64{
+					int64AtLeast(1),
+				},
 			},
 			"operation": schema.StringAttribute{
 				Description: "The operation this ACL grants. Options: 'Edit', 'View', 'Create', 'Delete', 'Search', 'All'.",
 				Required:    true,
+				Validators: []validator.String{
+					stringOneOf(validACLOperations...),
+				},
 			},
 			"object_table": schema.StringAttribute{
-				Description: "The type of object being permissioned (e.g., 'civicrm_group', 'civicrm_saved_search', 'civicrm_uf_group').",
+				Description: "The type of object being permissioned. Allowed values: civicrm_group, civicrm_saved_search, civicrm_uf_group, civicrm_custom_group, civicrm_event.",
 				Required:    true,
+				Validators: []validator.String{
+					stringOneOf(validACLObjectTables...),
+				},
 			},
 			"object_id": schema.Int64Attribute{
 				Description: "The ID of the specific object being permissioned. Leave empty (null) for all objects of the given type.",
@@ -496,4 +528,31 @@ func (r *ACLResource) ImportState(ctx context.Context, req resource.ImportStateR
 	}
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
+}
+
+// ValidateConfig enforces cross-field constraints that cannot be expressed in individual field validators.
+func (r *ACLResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config ACLResourceModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// acl_table and acl_id must be set together — one without the other is invalid.
+	aclTableSet := !config.AclTable.IsNull() && !config.AclTable.IsUnknown()
+	aclIDSet := !config.AclID.IsNull() && !config.AclID.IsUnknown()
+	if aclTableSet && !aclIDSet {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("acl_id"),
+			"Missing acl_id",
+			"acl_id must be set when acl_table is specified.",
+		)
+	}
+	if aclIDSet && !aclTableSet {
+		resp.Diagnostics.AddAttributeError(
+			path.Root("acl_table"),
+			"Missing acl_table",
+			"acl_table must be set when acl_id is specified.",
+		)
+	}
 }
