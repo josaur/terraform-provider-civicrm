@@ -236,13 +236,14 @@ resource "civicrm_acl" "op_test" {
 // CiviCRM stores it without error.  If a future CiviCRM version removes a value,
 // this test will catch it so the provider documentation can be updated.
 func TestAccACLAllObjectTables(t *testing.T) {
-	// Values shown in the CiviCRM ACL admin UI under "Type of Data".
-	// Do NOT add values here without confirming against a running CiviCRM instance.
+	// Source: CRM/ACL/BAO/ACL.php::getObjectTableOptions() in CiviCRM 6.6.
+	// civicrm_group covers both static and smart groups (smart groups are civicrm_group
+	// rows with a saved_search_id; there is no separate civicrm_saved_search object type).
 	knownObjectTables := []string{
-		"civicrm_group",         // static group contacts
-		"civicrm_saved_search",  // smart group contacts
-		"civicrm_uf_group",      // profiles
-		"civicrm_custom_group",  // custom data groups
+		"civicrm_group",
+		"civicrm_uf_group",
+		"civicrm_custom_group",
+		"civicrm_event",
 	}
 
 	for _, tbl := range knownObjectTables {

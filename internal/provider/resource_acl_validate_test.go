@@ -28,13 +28,12 @@ resource "civicrm_acl" "test" {
 	})
 }
 
-// Note: object_table is a free varchar in CiviCRM with no DB-level enum.
-// The valid values depend on the CiviCRM version and installed extensions.
-// Validation is intentionally not an enum — CiviCRM itself is the authority.
-// The acceptance test TestAccACLAllObjectTables verifies the known values against
-// the live CiviCRM instance.
-
-func TestACLResource_Validate_EmptyObjectTable(t *testing.T) {
+// TestACLResource_Validate_InvalidObjectTable tests that object_table values not in
+// CRM/ACL/BAO/ACL.php::getObjectTableOptions() are rejected at plan time.
+// This prevents silent failures where CiviCRM stores the rule but never evaluates it.
+// civicrm_saved_search is the canonical example: CiviCRM 6.6 stores it without error
+// but the ACL engine never checks it (smart groups are addressed via civicrm_group).
+func TestACLResource_Validate_InvalidObjectTable(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -44,9 +43,27 @@ resource "civicrm_acl" "test" {
   name         = "tf_unit_acl"
   entity_id    = 1
   operation    = "View"
-  object_table = ""
+  object_table = "civicrm_saved_search"
 }`,
-				ExpectError: regexp.MustCompile(`(?i)too short|at least 1`),
+				ExpectError: regexp.MustCompile(`(?i)civicrm_saved_search.*not a valid|not a valid.*civicrm_saved_search`),
+			},
+		},
+	})
+}
+
+func TestACLResource_Validate_UnknownObjectTable(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: providerConfig() + `
+resource "civicrm_acl" "test" {
+  name         = "tf_unit_acl"
+  entity_id    = 1
+  operation    = "View"
+  object_table = "civicrm_contact"
+}`,
+				ExpectError: regexp.MustCompile(`(?i)civicrm_contact.*not a valid|not a valid.*civicrm_contact`),
 			},
 		},
 	})

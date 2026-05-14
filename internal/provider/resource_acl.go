@@ -32,6 +32,19 @@ var validACLOperations = []string{"Edit", "View", "Create", "Delete", "Search", 
 // Source: CiviCRM admin UI and existing acceptance tests.
 var validACLEntityTables = []string{"civicrm_acl_role", "civicrm_group"}
 
+// validACLObjectTables lists the object types that CiviCRM's ACL engine actually evaluates.
+// Source: CRM/ACL/BAO/ACL.php::getObjectTableOptions() in CiviCRM 6.6.
+// Any other value is silently stored but never enforced — use terraform validate to catch this early.
+// Note: civicrm_group covers both static groups AND smart groups (smart groups are stored as
+// civicrm_group rows with a saved_search_id column; there is no separate civicrm_saved_search object type).
+// Note: civicrm_event requires the CiviEvent component to be enabled.
+var validACLObjectTables = []string{
+	"civicrm_group",
+	"civicrm_uf_group",
+	"civicrm_custom_group",
+	"civicrm_event",
+}
+
 // ACLResource manages ACL rules in CiviCRM.
 // ACL rules define what operations a role can perform on specific data.
 type ACLResource struct {
@@ -103,20 +116,14 @@ func (r *ACLResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				},
 			},
 			"object_table": schema.StringAttribute{
-				// object_table is a free varchar in CiviCRM's schema with no DB-level enum
-				// constraint.  Known values from the CiviCRM admin UI are:
-				//   civicrm_group          – static group contacts
-				//   civicrm_saved_search   – smart group contacts
-				//   civicrm_uf_group       – profiles
-				//   civicrm_custom_group   – custom data groups
-				// The authoritative list for your CiviCRM version can be retrieved via:
-				//   cv api4 ACL.getFields +s name +w name=object_table
-				Description: "The CiviCRM table whose records this ACL permissions. " +
-					"Common values: civicrm_group, civicrm_saved_search, civicrm_uf_group, civicrm_custom_group. " +
-					"Run 'cv api4 ACL.getFields' to see the authoritative list for your CiviCRM version.",
+				Description: "The type of object this ACL permissions. " +
+					"Allowed values (from CRM/ACL/BAO/ACL.php::getObjectTableOptions()): " +
+					"civicrm_group (static and smart groups), civicrm_uf_group (profiles), " +
+					"civicrm_custom_group (custom data), civicrm_event (requires CiviEvent). " +
+					"Other values are silently stored but never evaluated by CiviCRM's ACL engine.",
 				Required: true,
 				Validators: []validator.String{
-					stringLengthAtLeast(1),
+					stringOneOf(validACLObjectTables...),
 				},
 			},
 			"object_id": schema.Int64Attribute{
