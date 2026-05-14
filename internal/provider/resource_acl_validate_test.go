@@ -28,7 +28,13 @@ resource "civicrm_acl" "test" {
 	})
 }
 
-func TestACLResource_Validate_InvalidObjectTable(t *testing.T) {
+// Note: object_table is a free varchar in CiviCRM with no DB-level enum.
+// The valid values depend on the CiviCRM version and installed extensions.
+// Validation is intentionally not an enum — CiviCRM itself is the authority.
+// The acceptance test TestAccACLAllObjectTables verifies the known values against
+// the live CiviCRM instance.
+
+func TestACLResource_Validate_EmptyObjectTable(t *testing.T) {
 	resource.UnitTest(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
@@ -38,9 +44,9 @@ resource "civicrm_acl" "test" {
   name         = "tf_unit_acl"
   entity_id    = 1
   operation    = "View"
-  object_table = "civicrm_nonexistent"
+  object_table = ""
 }`,
-				ExpectError: regexp.MustCompile(`(?i)civicrm_nonexistent.*not a valid|not a valid.*civicrm_nonexistent`),
+				ExpectError: regexp.MustCompile(`(?i)too short|at least 1`),
 			},
 		},
 	})

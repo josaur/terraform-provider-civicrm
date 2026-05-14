@@ -226,6 +226,54 @@ resource "civicrm_acl" "op_test" {
 	}
 }
 
+// TestAccACLAllObjectTables verifies that the object_table values known from the
+// CiviCRM admin UI are actually accepted by the live CiviCRM instance.
+// This is the acceptance-test complement to the informational CI log step
+// "Log valid ACL object_table values from CiviCRM schema".
+//
+// object_table is a free varchar in civicrm_acl — CiviCRM does not enforce an enum
+// at the DB or API level.  This test creates one ACL per known value and confirms
+// CiviCRM stores it without error.  If a future CiviCRM version removes a value,
+// this test will catch it so the provider documentation can be updated.
+func TestAccACLAllObjectTables(t *testing.T) {
+	// Values shown in the CiviCRM ACL admin UI under "Type of Data".
+	// Do NOT add values here without confirming against a running CiviCRM instance.
+	knownObjectTables := []string{
+		"civicrm_group",         // static group contacts
+		"civicrm_saved_search",  // smart group contacts
+		"civicrm_uf_group",      // profiles
+		"civicrm_custom_group",  // custom data groups
+	}
+
+	for _, tbl := range knownObjectTables {
+		tbl := tbl // capture loop variable
+		t.Run(tbl, func(t *testing.T) {
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             checkDestroyByID(t, "ACL", "civicrm_acl.objtbl_test"),
+				Steps: []resource.TestStep{
+					{
+						Config: providerConfig() + fmt.Sprintf(`
+resource "civicrm_acl" "objtbl_test" {
+  name         = "tf_acc_objtbl_%s"
+  entity_table = "civicrm_acl_role"
+  entity_id    = 1
+  operation    = "View"
+  object_table = %q
+  is_active    = true
+}`, tbl, tbl),
+						Check: resource.ComposeAggregateTestCheckFunc(
+							resource.TestCheckResourceAttr("civicrm_acl.objtbl_test", "object_table", tbl),
+							checkEntityAttr(t, "ACL", "civicrm_acl.objtbl_test", "id", "object_table", tbl),
+						),
+					},
+				},
+			})
+		})
+	}
+}
+
 // --- helpers ---
 
 func testAccACLFullChainConfig(operation string) string {

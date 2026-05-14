@@ -25,19 +25,12 @@ var (
 )
 
 // validACLOperations lists the operations accepted by CiviCRM's ACL engine.
+// Source: civicrm_acl schema comment ("What operation does this ACL apply to?").
 var validACLOperations = []string{"Edit", "View", "Create", "Delete", "Search", "All"}
 
 // validACLEntityTables lists the entity_table values supported for ACL ownership.
+// Source: CiviCRM admin UI and existing acceptance tests.
 var validACLEntityTables = []string{"civicrm_acl_role", "civicrm_group"}
-
-// validACLObjectTables lists the object types that CiviCRM ACLs can permission.
-var validACLObjectTables = []string{
-	"civicrm_group",
-	"civicrm_saved_search",
-	"civicrm_uf_group",
-	"civicrm_custom_group",
-	"civicrm_event",
-}
 
 // ACLResource manages ACL rules in CiviCRM.
 // ACL rules define what operations a role can perform on specific data.
@@ -110,10 +103,20 @@ func (r *ACLResource) Schema(ctx context.Context, req resource.SchemaRequest, re
 				},
 			},
 			"object_table": schema.StringAttribute{
-				Description: "The type of object being permissioned. Allowed values: civicrm_group, civicrm_saved_search, civicrm_uf_group, civicrm_custom_group, civicrm_event.",
-				Required:    true,
+				// object_table is a free varchar in CiviCRM's schema with no DB-level enum
+				// constraint.  Known values from the CiviCRM admin UI are:
+				//   civicrm_group          – static group contacts
+				//   civicrm_saved_search   – smart group contacts
+				//   civicrm_uf_group       – profiles
+				//   civicrm_custom_group   – custom data groups
+				// The authoritative list for your CiviCRM version can be retrieved via:
+				//   cv api4 ACL.getFields +s name +w name=object_table
+				Description: "The CiviCRM table whose records this ACL permissions. " +
+					"Common values: civicrm_group, civicrm_saved_search, civicrm_uf_group, civicrm_custom_group. " +
+					"Run 'cv api4 ACL.getFields' to see the authoritative list for your CiviCRM version.",
+				Required: true,
 				Validators: []validator.String{
-					stringOneOf(validACLObjectTables...),
+					stringLengthAtLeast(1),
 				},
 			},
 			"object_id": schema.Int64Attribute{
