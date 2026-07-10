@@ -11,35 +11,24 @@ Attaches a condition to a CiviRules rule (entity: `CiviRulesRuleCondition`). One
 
 ## Example Usage
 
+CiviRules stores `condition_params` via `serialize()` and reads them with
+`unserialize()` (see `CRM/Civirules/Condition/*Form.php`). Values written
+as JSON make the condition unreadable in the UI and skip the condition's
+runtime check silently. Pass a PHP-serialized string.
+
 ```terraform
 data "civicrm_civirules_condition" "activity_type" {
   name = "activity_type"
-}
-
-data "civicrm_civirules_condition" "activity_status" {
-  name = "activity_status"
 }
 
 # Only proceed if the activity type is "Follow up"
 resource "civicrm_civirules_rule_condition" "check_type" {
   rule_id      = civicrm_civirules_rule.my_rule.id
   condition_id = data.civicrm_civirules_condition.activity_type.id
-  condition_params = jsonencode({
-    activity_type_id = "Follow up"
-  })
+  # a:1:{s:16:"activity_type_id";s:9:"Follow up";}
+  condition_params = "a:1:{s:16:\"activity_type_id\";s:9:\"Follow up\";}"
   is_active = true
   negate    = false
-}
-
-# Only proceed if the activity status is NOT "Cancelled"
-resource "civicrm_civirules_rule_condition" "not_cancelled" {
-  rule_id      = civicrm_civirules_rule.my_rule.id
-  condition_id = data.civicrm_civirules_condition.activity_status.id
-  condition_params = jsonencode({
-    activity_status_id = "3" # 3 = Cancelled in default CiviCRM
-  })
-  is_active = true
-  negate    = true
 }
 ```
 
@@ -54,7 +43,7 @@ The following arguments are supported:
 
 ### Optional
 
-- `condition_params` (String) JSON-encoded parameters passed to the condition class. Structure depends on the condition type (e.g. `{"case_type_id": "3"}` for a case-type condition).
+- `condition_params` (String) PHP `serialize()`-encoded parameters passed to the condition class. Structure depends on the condition type (e.g. `a:1:{s:12:"case_type_id";s:1:"3";}` for a case-type condition). See note in *Example Usage* above; JSON is silently accepted at write time but breaks the condition at runtime.
 - `is_active` (Boolean) Whether this condition is active. Default: `true`.
 - `negate` (Boolean) When `true`, the condition logic is inverted (NOT). Default: `false`.
 

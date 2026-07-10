@@ -65,7 +65,7 @@ func (r *CiviRulesRuleConditionResource) Schema(_ context.Context, _ resource.Sc
 				Required:    true,
 			},
 			"condition_params": schema.StringAttribute{
-				Description: "JSON-encoded parameters passed to the condition class. Structure depends on the condition type (e.g. '{\"case_type_id\": \"3\"}' for a case-type condition).",
+				Description: "PHP serialize()-encoded parameters passed to the condition class. CiviRules stores this via serialize() and reads with unserialize(); JSON is silently accepted at write time but breaks the condition at runtime. Structure depends on the condition type (e.g. 'a:1:{s:12:\"case_type_id\";s:1:\"3\";}' for a case-type condition).",
 				Optional:    true,
 			},
 			"is_active": schema.BoolAttribute{
