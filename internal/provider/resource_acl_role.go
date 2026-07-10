@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -59,10 +60,16 @@ func (r *ACLRoleResource) Schema(ctx context.Context, req resource.SchemaRequest
 			"name": schema.StringAttribute{
 				Description: "The machine name of the ACL role.",
 				Required:    true,
+				Validators: []validator.String{
+					stringLengthAtLeast(1),
+				},
 			},
 			"label": schema.StringAttribute{
 				Description: "The display label of the ACL role.",
 				Required:    true,
+				Validators: []validator.String{
+					stringLengthAtLeast(1),
+				},
 			},
 			"description": schema.StringAttribute{
 				Description: "A description of the ACL role.",

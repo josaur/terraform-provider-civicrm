@@ -32,7 +32,7 @@ resource "civicrm_acl" "test" {
   entity_table = "civicrm_group"
   entity_id    = civicrm_group.acl_test.id
   operation    = "View"
-  object_table = "civicrm_saved_search"
+  object_table = "civicrm_group"
   is_active    = true
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -73,7 +73,7 @@ resource "civicrm_acl" "test" {
   entity_table = "civicrm_group"
   entity_id    = civicrm_group.acl_test.id
   operation    = "Edit"
-  object_table = "civicrm_saved_search"
+  object_table = "civicrm_group"
   is_active    = true
 }`,
 				Check: resource.ComposeAggregateTestCheckFunc(

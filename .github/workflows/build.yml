@@ -135,6 +135,20 @@ jobs:
 
           echo "CIVICRM_API_KEY=${API_KEY}" >> "$GITHUB_OUTPUT"
 
+      - name: Log valid ACL object_table values from CiviCRM schema
+        # object_table is a free varchar in civicrm_acl — no DB-level enum.
+        # This step queries the live CiviCRM instance so the authoritative list
+        # is visible in the CI log and can be used to keep provider docs in sync.
+        run: |
+          echo "=== ACL.getFields: object_table field definition ==="
+          docker compose exec -T civi bash -c \
+            "echo '{\"where\":[[\"name\",\"=\",\"object_table\"]]}' \
+             | cv api4 ACL.getFields --in=json --out=json-pretty" || true
+          echo "=== ACL.getFields: entity_table field definition ==="
+          docker compose exec -T civi bash -c \
+            "echo '{\"where\":[[\"name\",\"=\",\"entity_table\"]]}' \
+             | cv api4 ACL.getFields --in=json --out=json-pretty" || true
+
       - name: Run acceptance tests
         env:
           TF_ACC: "1"
