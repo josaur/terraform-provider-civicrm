@@ -185,6 +185,8 @@ func (p *CiviCRMProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewPriceFieldResource,
 		NewPriceFieldValueResource,
 		NewActivityTypeResource,
+		NewOptionGroupResource,
+		NewOptionValueResource,
 		NewMessageTemplateResource,
 		// END GENERATED RESOURCES
 	}
