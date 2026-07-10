@@ -187,6 +187,7 @@ func (p *CiviCRMProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewActivityTypeResource,
 		NewOptionGroupResource,
 		NewOptionValueResource,
+		NewMessageTemplateResource,
 		// END GENERATED RESOURCES
 	}
 }
