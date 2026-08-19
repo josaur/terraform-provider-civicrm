@@ -30,15 +30,18 @@ type MessageTemplateResource struct {
 }
 
 type MessageTemplateResourceModel struct {
-	ID         types.Int64  `tfsdk:"id"`
-	MsgTitle   types.String `tfsdk:"msg_title"`
-	MsgSubject types.String `tfsdk:"msg_subject"`
-	MsgHTML    types.String `tfsdk:"msg_html"`
-	MsgText    types.String `tfsdk:"msg_text"`
-	IsActive   types.Bool   `tfsdk:"is_active"`
-	IsReserved types.Bool   `tfsdk:"is_reserved"`
-	IsDefault  types.Bool   `tfsdk:"is_default"`
+	ID           types.Int64  `tfsdk:"id"`
+	MsgTitle     types.String `tfsdk:"msg_title"`
+	MsgSubject   types.String `tfsdk:"msg_subject"`
+	MsgHTML      types.String `tfsdk:"msg_html"`
+	MsgText      types.String `tfsdk:"msg_text"`
+	IsActive     types.Bool   `tfsdk:"is_active"`
+	IsReserved   types.Bool   `tfsdk:"is_reserved"`
+	IsDefault    types.Bool   `tfsdk:"is_default"`
+	IsSms        types.Bool   `tfsdk:"is_sms"`
 	WorkflowName types.String `tfsdk:"workflow_name"`
+	WorkflowID   types.Int64  `tfsdk:"workflow_id"`
+	PdfFormatID  types.Int64  `tfsdk:"pdf_format_id"`
 }
 
 func NewMessageTemplateResource() resource.Resource {
@@ -94,9 +97,25 @@ func (r *MessageTemplateResource) Schema(_ context.Context, _ resource.SchemaReq
 				Computed:    true,
 				Default:     booldefault.StaticBool(false),
 			},
+			"is_sms": schema.BoolAttribute{
+				Description: "Whether this message template is used for SMS. Default: false.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
 			"workflow_name": schema.StringAttribute{
 				Description: "For workflow templates: the machine name of the workflow this template overrides (e.g. `contribution_online_receipt`). Leave empty for user-defined templates.",
 				Optional:    true,
+			},
+			"workflow_id": schema.Int64Attribute{
+				Description: "Pseudo-FK to civicrm_option_value for the workflow this template belongs to.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"pdf_format_id": schema.Int64Attribute{
+				Description: "Pseudo-FK to civicrm_option_value for the PDF page format used when rendering this template (e.g. invoices).",
+				Optional:    true,
+				Computed:    true,
 			},
 		},
 	}
@@ -131,6 +150,7 @@ func (r *MessageTemplateResource) Create(ctx context.Context, req resource.Creat
 		"is_active":   plan.IsActive.ValueBool(),
 		"is_reserved": plan.IsReserved.ValueBool(),
 		"is_default":  plan.IsDefault.ValueBool(),
+		"is_sms":      plan.IsSms.ValueBool(),
 	}
 	if !plan.MsgSubject.IsNull() && !plan.MsgSubject.IsUnknown() {
 		values["msg_subject"] = plan.MsgSubject.ValueString()
@@ -143,6 +163,12 @@ func (r *MessageTemplateResource) Create(ctx context.Context, req resource.Creat
 	}
 	if !plan.WorkflowName.IsNull() && !plan.WorkflowName.IsUnknown() && plan.WorkflowName.ValueString() != "" {
 		values["workflow_name"] = plan.WorkflowName.ValueString()
+	}
+	if !plan.WorkflowID.IsNull() && !plan.WorkflowID.IsUnknown() {
+		values["workflow_id"] = plan.WorkflowID.ValueInt64()
+	}
+	if !plan.PdfFormatID.IsNull() && !plan.PdfFormatID.IsUnknown() {
+		values["pdf_format_id"] = plan.PdfFormatID.ValueInt64()
 	}
 
 	result, err := r.client.Create("MessageTemplate", values)
@@ -198,6 +224,7 @@ func (r *MessageTemplateResource) Update(ctx context.Context, req resource.Updat
 		"is_active":   plan.IsActive.ValueBool(),
 		"is_reserved": plan.IsReserved.ValueBool(),
 		"is_default":  plan.IsDefault.ValueBool(),
+		"is_sms":      plan.IsSms.ValueBool(),
 	}
 	if !plan.MsgSubject.IsNull() && !plan.MsgSubject.IsUnknown() {
 		values["msg_subject"] = plan.MsgSubject.ValueString()
@@ -218,6 +245,16 @@ func (r *MessageTemplateResource) Update(ctx context.Context, req resource.Updat
 		values["workflow_name"] = plan.WorkflowName.ValueString()
 	} else {
 		values["workflow_name"] = nil
+	}
+	if !plan.WorkflowID.IsNull() && !plan.WorkflowID.IsUnknown() {
+		values["workflow_id"] = plan.WorkflowID.ValueInt64()
+	} else {
+		values["workflow_id"] = nil
+	}
+	if !plan.PdfFormatID.IsNull() && !plan.PdfFormatID.IsUnknown() {
+		values["pdf_format_id"] = plan.PdfFormatID.ValueInt64()
+	} else {
+		values["pdf_format_id"] = nil
 	}
 
 	_, err := r.client.Update("MessageTemplate", state.ID.ValueInt64(), values)
@@ -298,9 +335,22 @@ func (r *MessageTemplateResource) mapResultToState(result map[string]any, model 
 	if def, ok := GetBool(result, "is_default"); ok {
 		model.IsDefault = types.BoolValue(def)
 	}
+	if sms, ok := GetBool(result, "is_sms"); ok {
+		model.IsSms = types.BoolValue(sms)
+	}
 	if wf, ok := GetString(result, "workflow_name"); ok && wf != "" {
 		model.WorkflowName = types.StringValue(wf)
 	} else {
 		model.WorkflowName = types.StringNull()
+	}
+	if wfID, ok := GetInt64(result, "workflow_id"); ok {
+		model.WorkflowID = types.Int64Value(wfID)
+	} else {
+		model.WorkflowID = types.Int64Null()
+	}
+	if pdfID, ok := GetInt64(result, "pdf_format_id"); ok {
+		model.PdfFormatID = types.Int64Value(pdfID)
+	} else {
+		model.PdfFormatID = types.Int64Null()
 	}
 }
