@@ -11,32 +11,22 @@ Attaches an action to a CiviRules rule (entity: `CiviRulesRuleAction`). One rule
 
 ## Example Usage
 
+CiviRules stores `action_params` via `serialize()` and reads them with
+`unserialize()` (see `CRM/Civirules/Action/*Form.php`). Values written
+as JSON are silently accepted at write time but the action fails
+(silently or with an error) at runtime because `unserialize()` cannot
+decode them. Pass a PHP-serialized string.
+
 ```terraform
 data "civicrm_civirules_action" "change_case_status" {
   name = "change_case_status"
 }
 
-data "civicrm_case_status" "resolved" {
-  name = "resolved"
-}
-
 resource "civicrm_civirules_rule_action" "close_on_complete" {
   rule_id   = civicrm_civirules_rule.my_rule.id
   action_id = data.civicrm_civirules_action.change_case_status.id
-  action_params = jsonencode({
-    case_status_id = data.civicrm_case_status.resolved.value
-  })
-  is_active = true
-}
-
-# Action with a delay of 1 day
-resource "civicrm_civirules_rule_action" "send_email_delayed" {
-  rule_id   = civicrm_civirules_rule.my_rule.id
-  action_id = data.civicrm_civirules_action.send_email.id
-  action_params = jsonencode({
-    template_id = 5
-  })
-  delay     = "P1D"
+  # a:1:{s:14:"case_status_id";i:2;}
+  action_params = "a:1:{s:14:\"case_status_id\";i:2;}"
   is_active = true
 }
 ```
@@ -52,7 +42,7 @@ The following arguments are supported:
 
 ### Optional
 
-- `action_params` (String) JSON-encoded parameters passed to the action class. Structure depends on the action type (e.g. `{"status_id": "2"}` for a change-case-status action).
+- `action_params` (String) PHP `serialize()`-encoded parameters passed to the action class. Structure depends on the action type (e.g. `a:1:{s:9:"status_id";s:1:"2";}` for a change-case-status action). See note in *Example Usage* above; JSON is silently accepted at write time but breaks the action at runtime.
 - `delay` (String) Delay before executing the action. ISO 8601 duration string (e.g. `"P1D"` = 1 day, `"PT2H"` = 2 hours). Leave empty for immediate execution.
 - `is_active` (Boolean) Whether this action is active. Default: `true`.
 

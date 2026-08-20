@@ -64,7 +64,7 @@ func (r *CiviRulesRuleActionResource) Schema(_ context.Context, _ resource.Schem
 				Required:    true,
 			},
 			"action_params": schema.StringAttribute{
-				Description: "JSON-encoded parameters passed to the action class. Structure depends on the action type (e.g. '{\"status_id\": \"2\"}' for a change-case-status action).",
+				Description: "PHP serialize()-encoded parameters passed to the action class. CiviRules stores this via serialize() and reads with unserialize(); JSON is silently accepted at write time but breaks the action at runtime. Structure depends on the action type (e.g. 'a:1:{s:9:\"status_id\";s:1:\"2\";}' for a change-case-status action).",
 				Optional:    true,
 			},
 			"delay": schema.StringAttribute{
