@@ -13,6 +13,16 @@ Requires the [CiviRules extension](https://civicrm.org/extensions/civirules) to 
 
 ## Example Usage
 
+CiviRules stores `trigger_params` (like `condition_params` and
+`action_params` on the linked condition/action resources) via `serialize()`
+and reads it back with `unserialize()` (see
+`CRM_Civirules_Trigger::setTriggerParams()`). Values written as JSON are
+silently accepted at write time but the trigger fails to read them at
+runtime because `unserialize()` cannot decode them. Pass a PHP-serialized
+string — the same applies to `condition_params` on
+[`civicrm_civirules_rule_condition`](civirules_rule_condition.md) and
+`action_params` on [`civicrm_civirules_rule_action`](civirules_rule_action.md).
+
 ```terraform
 # Look up the trigger by name so we don't hardcode its numeric ID
 data "civicrm_civirules_trigger" "activity_changed" {
@@ -44,9 +54,8 @@ resource "civicrm_civirules_rule" "income_stab_closes_case" {
 resource "civicrm_civirules_rule_condition" "check_activity_type" {
   rule_id      = civicrm_civirules_rule.income_stab_closes_case.id
   condition_id = data.civicrm_civirules_condition.activity_type.id
-  condition_params = jsonencode({
-    activity_type_id = "Income and benefits stabilization"
-  })
+  # a:1:{s:16:"activity_type_id";s:32:"Income and benefits stabilization";}
+  condition_params = "a:1:{s:16:\"activity_type_id\";s:32:\"Income and benefits stabilization\";}"
   is_active = true
 }
 
@@ -54,9 +63,8 @@ resource "civicrm_civirules_rule_condition" "check_activity_type" {
 resource "civicrm_civirules_rule_action" "set_status" {
   rule_id   = civicrm_civirules_rule.income_stab_closes_case.id
   action_id = data.civicrm_civirules_action.change_case_status.id
-  action_params = jsonencode({
-    case_status_id = data.civicrm_case_status.housing_secured.value
-  })
+  # a:1:{s:14:"case_status_id";i:2;}
+  action_params = "a:1:{s:14:\"case_status_id\";i:2;}"
   is_active = true
 }
 ```
@@ -73,7 +81,7 @@ The following arguments are supported:
 
 ### Optional
 
-- `trigger_params` (String) JSON-encoded parameters for the trigger. Content depends on the trigger type (e.g. `{"case_type_id": "3"}` for case triggers). Leave empty if the trigger requires no parameters.
+- `trigger_params` (String) PHP `serialize()`-encoded parameters passed to the trigger class. Structure depends on the trigger type. See note in *Example Usage* above; JSON is silently accepted at write time but breaks the trigger at runtime. Leave empty if the trigger requires no parameters.
 - `description` (String) Optional description of what this rule does.
 - `help_text` (String) Optional help text shown to admins in the CiviRules UI.
 - `is_active` (Boolean) Whether the rule is active. Default: `true`.

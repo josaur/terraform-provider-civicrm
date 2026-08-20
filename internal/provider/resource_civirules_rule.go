@@ -73,7 +73,7 @@ func (r *CiviRulesRuleResource) Schema(_ context.Context, _ resource.SchemaReque
 				Required:    true,
 			},
 			"trigger_params": schema.StringAttribute{
-				Description: "JSON-encoded parameters for the trigger. Content depends on the trigger type. For case triggers this typically contains the case_type_id. Leave empty if the trigger requires no parameters.",
+				Description: "PHP serialize()-encoded parameters passed to the trigger class. CiviRules stores this via serialize() and reads it with unserialize() (see CRM_Civirules_Trigger::setTriggerParams()); JSON is silently accepted at write time but unserialize() cannot decode it at runtime. Structure depends on the trigger type. Leave empty if the trigger requires no parameters.",
 				Optional:    true,
 			},
 			"description": schema.StringAttribute{
