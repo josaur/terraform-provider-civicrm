@@ -190,6 +190,7 @@ func (p *CiviCRMProvider) Resources(ctx context.Context) []func() resource.Resou
 		NewMessageTemplateResource,
 		NewSavedSearchResource,
 		NewSearchDisplayResource,
+		NewNavigationResource,
 		// END GENERATED RESOURCES
 	}
 }
@@ -212,6 +213,7 @@ func (p *CiviCRMProvider) DataSources(ctx context.Context) []func() datasource.D
 		NewSavedSearchDataSource,
 		NewMessageTemplateDataSource,
 		NewSearchDisplayDataSource,
+		NewNavigationDataSource,
 		// END GENERATED DATASOURCES
 	}
 }

@@ -3,6 +3,7 @@ package provider
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -70,6 +71,48 @@ func (v *stringMinLenValidator) ValidateString(_ context.Context, req validator.
 			fmt.Sprintf("Value must be at least %d character(s) long, got %q", v.min, req.ConfigValue.ValueString()),
 		)
 	}
+}
+
+// int64OneOf returns an Int64 validator that accepts only the given values.
+func int64OneOf(values ...int64) validator.Int64 {
+	return &oneOfInt64Validator{values: values}
+}
+
+type oneOfInt64Validator struct {
+	values []int64
+}
+
+func (v *oneOfInt64Validator) Description(_ context.Context) string {
+	parts := make([]string, len(v.values))
+	for i, val := range v.values {
+		parts[i] = strconv.FormatInt(val, 10)
+	}
+	return fmt.Sprintf("Must be one of: %s", strings.Join(parts, ", "))
+}
+
+func (v *oneOfInt64Validator) MarkdownDescription(ctx context.Context) string {
+	return v.Description(ctx)
+}
+
+func (v *oneOfInt64Validator) ValidateInt64(_ context.Context, req validator.Int64Request, resp *validator.Int64Response) {
+	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	val := req.ConfigValue.ValueInt64()
+	for _, allowed := range v.values {
+		if val == allowed {
+			return
+		}
+	}
+	parts := make([]string, len(v.values))
+	for i, allowed := range v.values {
+		parts[i] = strconv.FormatInt(allowed, 10)
+	}
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"Invalid value",
+		fmt.Sprintf("%d is not a valid value. Allowed values: %s", val, strings.Join(parts, ", ")),
+	)
 }
 
 // int64AtLeast returns an Int64 validator that rejects values below min.
