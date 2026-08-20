@@ -82,9 +82,7 @@ Each workflow (identified by `workflow_name`) has **two** rows in CiviCRM:
 
 Use the [`civicrm_message_template` data source](../data-sources/message_template.md) to look
 up the current numeric id by `workflow_name` — no id needs to be hardcoded, so the same config
-works unmodified across CiviCRM instances where the underlying id differs. Verified end-to-end
-against a local `docker-compose` CiviCRM instance (`terraform init` → `apply` → `plan` showing
-no drift):
+works unmodified across CiviCRM instances where the underlying id differs:
 
 ```terraform
 data "civicrm_message_template" "invoice_lookup" {
@@ -113,9 +111,7 @@ then on it's a normal resource: edit `msg_html`/`msg_subject`/etc. in the config
 
 The same pattern generalizes to every built-in workflow with `for_each`. `workflow_name`
 values are stable CiviCRM core constants (not instance-specific data), so the list itself can
-be hardcoded even though no numeric id ever is. Verified against the same local instance with
-2 of the 32 workflows (`contribution_invoice_receipt`, `contribution_offline_receipt`) —
-`for_each` over the full set follows the identical mechanism:
+be hardcoded even though no numeric id ever is:
 
 ```terraform
 locals {
