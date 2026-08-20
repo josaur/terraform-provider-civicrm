@@ -53,12 +53,27 @@ resource "civicrm_saved_search" "individuals_with_email" {
 
 Updating `where`/`join`/`select` (e.g. changing the `contact_type` filter, or adding another
 join) is a normal in-place `update` — verified by changing the filter from `"Individual"` to
-`"Organization"` and confirming the new value round-tripped through `SavedSearch.get`.
+`"Organization"` and confirming the new filter is actually applied (not just round-tripped):
+`SavedSearch.get` in a `cv ev` PHP context showed `api_params['where']` containing the updated
+value, directly accessible as CiviCRM/SearchKit itself would read it.
 
-`api_params` is stored by CiviCRM with `serialize:1` and returned wrapped in a one-element JSON
-array (e.g. `["{...}"]`) rather than a plain string; the resource unwraps this automatically
-when reading state back, so `jsonencode(...)` on the Terraform side and the raw string CiviCRM
-stores compare equal on `plan` with no phantom diff.
+`api_params` and `form_values` are `jsonencode(...)`-formatted JSON strings on the Terraform
+side (type `jsontypes.Normalized`, so key order and whitespace differences don't cause drift),
+but CiviCRM's API4 expects the *decoded* structure for both (`api_params` is `SERIALIZE_JSON`,
+`form_values` is `SERIALIZE_PHP`, and API4 performs its own encoding either way) — the resource
+decodes the JSON string before sending it to `create`/`update`, and re-encodes CiviCRM's
+response back into a JSON string for state. An earlier version of this resource passed the
+already-encoded string straight through, which caused CiviCRM to store a JSON array containing
+a JSON *string* rather than the JSON *object* SearchKit expects, silently breaking the search:
+`terraform plan` showed no drift (the read path decoded the same extra layer the write path
+added), but `select`/`where` were not accessible from `api_params` in CiviCRM/SearchKit code,
+since they weren't top-level keys. See
+[GitHub issue #10](https://github.com/josaur/terraform-provider-civicrm/issues/10). Verified
+fixed against the local `docker-compose` instance: `api_params` now stores as a plain JSON
+object (confirmed via `SavedSearch.get` in a `cv ev` PHP context, with `select`/`where`
+directly accessible as top-level keys, matching a search built through the CiviCRM UI), and
+re-applying a config with a different `jsonencode(...)` key order than the stored value
+produces no plan diff.
 
 ## Argument Reference
 
@@ -69,11 +84,11 @@ stores compare equal on `plan` with no phantom diff.
 ### Optional
 
 - `label` (String, Optional) Administrative label for search.
-- `form_values` (String, Optional) Submitted form values for this search.
+- `form_values` (String, Optional) Submitted form values for this search, as a JSON string (e.g. `jsonencode(...)`). Semantically compared — key order and whitespace don't affect drift.
 - `mapping_id` (Number, Optional) Foreign key to civicrm_mapping used for saved search-builder searches..
 - `search_custom_id` (Number, Optional) Foreign key to civicrm_option value table used for saved custom searches..
 - `api_entity` (String, Optional) Entity name for API based search.
-- `api_params` (String, Optional) Parameters for API based search.
+- `api_params` (String, Optional) Parameters for API based search (`select`/`where`/`join`/etc.), as a JSON string (e.g. `jsonencode(...)`). Semantically compared — key order and whitespace don't affect drift.
 - `created_id` (Number, Optional) FK to contact table..
 - `modified_id` (Number, Optional) FK to contact table..
 - `expires_date` (String, Optional) Optional date after which the search is not needed.

@@ -2,9 +2,11 @@ package provider
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -14,6 +16,34 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
+
+// decodeJSONAttribute unmarshals a JSON-string attribute value (e.g. from
+// jsonencode(...) in a Terraform config) into a Go structure suitable for
+// passing to CiviCRM API4. SavedSearch.api_params (SERIALIZE_JSON) and
+// form_values (SERIALIZE_PHP, but likewise API4-JSON-shaped) both expect
+// the *decoded* structure, not a pre-encoded JSON string: API4 performs its
+// own encoding, so passing an already-encoded string double-encodes it and
+// CiviCRM stores a JSON array containing a JSON string instead of the
+// object SearchKit expects (see GitHub issue #10).
+func decodeJSONAttribute(raw string) (any, error) {
+	var decoded any
+	if err := json.Unmarshal([]byte(raw), &decoded); err != nil {
+		return nil, err
+	}
+	return decoded, nil
+}
+
+// encodeJSONAttribute marshals a value returned by CiviCRM API4 (already a
+// native Go structure, not a JSON string) back into the JSON string stored
+// in Terraform state, so config written with jsonencode(...) round-trips
+// without drift.
+func encodeJSONAttribute(v any) (string, error) {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
+}
 
 var (
 	_ resource.Resource                = &SavedSearchResource{}
@@ -26,21 +56,21 @@ type SavedSearchResource struct {
 }
 
 type SavedSearchResourceModel struct {
-	ID             types.Int64  `tfsdk:"id"`
-	Name           types.String `tfsdk:"name"`
-	Label          types.String `tfsdk:"label"`
-	FormValues     types.String `tfsdk:"form_values"`
-	MappingID      types.Int64  `tfsdk:"mapping_id"`
-	SearchCustomID types.Int64  `tfsdk:"search_custom_id"`
-	APIEntity      types.String `tfsdk:"api_entity"`
-	APIParams      types.String `tfsdk:"api_params"`
-	CreatedID      types.Int64  `tfsdk:"created_id"`
-	ModifiedID     types.Int64  `tfsdk:"modified_id"`
-	ExpiresDate    types.String `tfsdk:"expires_date"`
-	CreatedDate    types.String `tfsdk:"created_date"`
-	ModifiedDate   types.String `tfsdk:"modified_date"`
-	Description    types.String `tfsdk:"description"`
-	IsTemplate     types.Bool   `tfsdk:"is_template"`
+	ID             types.Int64          `tfsdk:"id"`
+	Name           types.String         `tfsdk:"name"`
+	Label          types.String         `tfsdk:"label"`
+	FormValues     jsontypes.Normalized `tfsdk:"form_values"`
+	MappingID      types.Int64          `tfsdk:"mapping_id"`
+	SearchCustomID types.Int64          `tfsdk:"search_custom_id"`
+	APIEntity      types.String         `tfsdk:"api_entity"`
+	APIParams      jsontypes.Normalized `tfsdk:"api_params"`
+	CreatedID      types.Int64          `tfsdk:"created_id"`
+	ModifiedID     types.Int64          `tfsdk:"modified_id"`
+	ExpiresDate    types.String         `tfsdk:"expires_date"`
+	CreatedDate    types.String         `tfsdk:"created_date"`
+	ModifiedDate   types.String         `tfsdk:"modified_date"`
+	Description    types.String         `tfsdk:"description"`
+	IsTemplate     types.Bool           `tfsdk:"is_template"`
 }
 
 func NewSavedSearchResource() resource.Resource {
@@ -72,9 +102,12 @@ func (r *SavedSearchResource) Schema(ctx context.Context, req resource.SchemaReq
 				Computed:    true,
 			},
 			"form_values": schema.StringAttribute{
-				Description: "Submitted form values for this search.",
-				Optional:    true,
-				Computed:    true,
+				Description: "Submitted form values for this search, as a JSON string (e.g. from jsonencode(...)). " +
+					"CiviCRM API4 expects the decoded structure, not a pre-encoded string; this attribute handles " +
+					"that encoding/decoding automatically.",
+				Optional:   true,
+				Computed:   true,
+				CustomType: jsontypes.NormalizedType{},
 			},
 			"mapping_id": schema.Int64Attribute{
 				Description: "Foreign key to civicrm_mapping used for saved search-builder searches..",
@@ -92,9 +125,12 @@ func (r *SavedSearchResource) Schema(ctx context.Context, req resource.SchemaReq
 				Computed:    true,
 			},
 			"api_params": schema.StringAttribute{
-				Description: "Parameters for API based search.",
-				Optional:    true,
-				Computed:    true,
+				Description: "Parameters for API based search (select/where/join/etc.), as a JSON string (e.g. " +
+					"from jsonencode(...)). CiviCRM API4 expects the decoded structure, not a pre-encoded string; " +
+					"this attribute handles that encoding/decoding automatically.",
+				Optional:   true,
+				Computed:   true,
+				CustomType: jsontypes.NormalizedType{},
 			},
 			"created_id": schema.Int64Attribute{
 				Description: "FK to contact table..",
@@ -170,7 +206,16 @@ func (r *SavedSearchResource) Create(ctx context.Context, req resource.CreateReq
 		values["label"] = plan.Label.ValueString()
 	}
 	if !plan.FormValues.IsNull() && !plan.FormValues.IsUnknown() {
-		values["form_values"] = plan.FormValues.ValueString()
+		decoded, err := decodeJSONAttribute(plan.FormValues.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("form_values"),
+				"Invalid form_values JSON",
+				"form_values must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["form_values"] = decoded
 	}
 	if !plan.MappingID.IsNull() && !plan.MappingID.IsUnknown() {
 		values["mapping_id"] = plan.MappingID.ValueInt64()
@@ -182,7 +227,16 @@ func (r *SavedSearchResource) Create(ctx context.Context, req resource.CreateReq
 		values["api_entity"] = plan.APIEntity.ValueString()
 	}
 	if !plan.APIParams.IsNull() && !plan.APIParams.IsUnknown() {
-		values["api_params"] = plan.APIParams.ValueString()
+		decoded, err := decodeJSONAttribute(plan.APIParams.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("api_params"),
+				"Invalid api_params JSON",
+				"api_params must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["api_params"] = decoded
 	}
 	if !plan.CreatedID.IsNull() && !plan.CreatedID.IsUnknown() {
 		values["created_id"] = plan.CreatedID.ValueInt64()
@@ -278,7 +332,16 @@ func (r *SavedSearchResource) Update(ctx context.Context, req resource.UpdateReq
 		values["label"] = nil
 	}
 	if !plan.FormValues.IsNull() && !plan.FormValues.IsUnknown() {
-		values["form_values"] = plan.FormValues.ValueString()
+		decoded, err := decodeJSONAttribute(plan.FormValues.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("form_values"),
+				"Invalid form_values JSON",
+				"form_values must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["form_values"] = decoded
 	} else {
 		values["form_values"] = nil
 	}
@@ -298,7 +361,16 @@ func (r *SavedSearchResource) Update(ctx context.Context, req resource.UpdateReq
 		values["api_entity"] = nil
 	}
 	if !plan.APIParams.IsNull() && !plan.APIParams.IsUnknown() {
-		values["api_params"] = plan.APIParams.ValueString()
+		decoded, err := decodeJSONAttribute(plan.APIParams.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("api_params"),
+				"Invalid api_params JSON",
+				"api_params must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["api_params"] = decoded
 	} else {
 		values["api_params"] = nil
 	}
@@ -411,10 +483,15 @@ func (r *SavedSearchResource) mapResultToState(result map[string]any, model *Sav
 		model.Label = types.StringNull()
 	}
 
-	if v, ok := GetString(result, "form_values"); ok && v != "" {
-		model.FormValues = types.StringValue(v)
+	if raw, ok := result["form_values"]; ok && raw != nil {
+		encoded, err := encodeJSONAttribute(raw)
+		if err == nil && encoded != "" && encoded != "null" {
+			model.FormValues = jsontypes.NewNormalizedValue(encoded)
+		} else {
+			model.FormValues = jsontypes.NewNormalizedNull()
+		}
 	} else {
-		model.FormValues = types.StringNull()
+		model.FormValues = jsontypes.NewNormalizedNull()
 	}
 
 	if v, ok := GetInt64(result, "mapping_id"); ok {
@@ -435,31 +512,15 @@ func (r *SavedSearchResource) mapResultToState(result map[string]any, model *Sav
 		model.APIEntity = types.StringNull()
 	}
 
-	// api_params is stored with serialize:1 and comes back as a JSON array
-	// containing a single string, e.g. ["{...}"], rather than a plain string.
 	if raw, ok := result["api_params"]; ok && raw != nil {
-		switch v := raw.(type) {
-		case string:
-			if v != "" {
-				model.APIParams = types.StringValue(v)
-			} else {
-				model.APIParams = types.StringNull()
-			}
-		case []any:
-			if len(v) > 0 {
-				if s, ok := v[0].(string); ok && s != "" {
-					model.APIParams = types.StringValue(s)
-				} else {
-					model.APIParams = types.StringNull()
-				}
-			} else {
-				model.APIParams = types.StringNull()
-			}
-		default:
-			model.APIParams = types.StringNull()
+		encoded, err := encodeJSONAttribute(raw)
+		if err == nil && encoded != "" && encoded != "null" {
+			model.APIParams = jsontypes.NewNormalizedValue(encoded)
+		} else {
+			model.APIParams = jsontypes.NewNormalizedNull()
 		}
 	} else {
-		model.APIParams = types.StringNull()
+		model.APIParams = jsontypes.NewNormalizedNull()
 	}
 
 	if v, ok := GetInt64(result, "created_id"); ok {

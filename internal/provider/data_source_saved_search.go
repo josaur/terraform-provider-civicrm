@@ -132,8 +132,13 @@ func (d *SavedSearchDataSource) Read(ctx context.Context, req datasource.ReadReq
 	} else {
 		config.Label = types.StringNull()
 	}
-	if v, ok := GetString(result, "form_values"); ok && v != "" {
-		config.FormValues = types.StringValue(v)
+	if raw, ok := result["form_values"]; ok && raw != nil {
+		encoded, err := encodeJSONAttribute(raw)
+		if err == nil && encoded != "" && encoded != "null" {
+			config.FormValues = types.StringValue(encoded)
+		} else {
+			config.FormValues = types.StringNull()
+		}
 	} else {
 		config.FormValues = types.StringNull()
 	}
@@ -152,8 +157,13 @@ func (d *SavedSearchDataSource) Read(ctx context.Context, req datasource.ReadReq
 	} else {
 		config.APIEntity = types.StringNull()
 	}
-	if v, ok := GetString(result, "api_params"); ok && v != "" {
-		config.APIParams = types.StringValue(v)
+	if raw, ok := result["api_params"]; ok && raw != nil {
+		encoded, err := encodeJSONAttribute(raw)
+		if err == nil && encoded != "" && encoded != "null" {
+			config.APIParams = types.StringValue(encoded)
+		} else {
+			config.APIParams = types.StringNull()
+		}
 	} else {
 		config.APIParams = types.StringNull()
 	}
