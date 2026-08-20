@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -28,12 +30,12 @@ type CiviRulesRuleActionResource struct {
 }
 
 type CiviRulesRuleActionResourceModel struct {
-	ID           types.Int64  `tfsdk:"id"`
-	RuleID       types.Int64  `tfsdk:"rule_id"`
-	ActionID     types.Int64  `tfsdk:"action_id"`
-	ActionParams types.String `tfsdk:"action_params"`
-	Delay        types.String `tfsdk:"delay"`
-	IsActive     types.Bool   `tfsdk:"is_active"`
+	ID           types.Int64          `tfsdk:"id"`
+	RuleID       types.Int64          `tfsdk:"rule_id"`
+	ActionID     types.Int64          `tfsdk:"action_id"`
+	ActionParams jsontypes.Normalized `tfsdk:"action_params"`
+	Delay        types.String         `tfsdk:"delay"`
+	IsActive     types.Bool           `tfsdk:"is_active"`
 }
 
 func NewCiviRulesRuleActionResource() resource.Resource {
@@ -46,7 +48,7 @@ func (r *CiviRulesRuleActionResource) Metadata(_ context.Context, req resource.M
 
 func (r *CiviRulesRuleActionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Attaches an action to a CiviRules rule (entity: CiviRulesRuleAction). The action_id references a CiviRulesAction type. Parameters are passed as a JSON string whose structure depends on the action class.",
+		Description: "Attaches an action to a CiviRules rule (entity: CiviRulesRuleAction). The action_id references a CiviRulesAction type. action_params is a JSON string whose structure depends on the action class; the resource converts it to/from the PHP serialize() format CiviRules stores internally.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Description: "Unique ID of the rule-action link.",
@@ -64,8 +66,9 @@ func (r *CiviRulesRuleActionResource) Schema(_ context.Context, _ resource.Schem
 				Required:    true,
 			},
 			"action_params": schema.StringAttribute{
-				Description: "PHP serialize()-encoded parameters passed to the action class. CiviRules stores this via serialize() and reads with unserialize(); JSON is silently accepted at write time but breaks the action at runtime. Structure depends on the action type (e.g. 'a:1:{s:9:\"status_id\";s:1:\"2\";}' for a change-case-status action).",
+				Description: "Parameters passed to the action class, as a JSON string (e.g. jsonencode({status_id = 2})). CiviRules itself stores this PHP serialize()-encoded and reads it with unserialize(); this attribute handles that conversion automatically, so config only ever deals with JSON. Structure depends on the action type.",
 				Optional:    true,
+				CustomType:  jsontypes.NormalizedType{},
 			},
 			"delay": schema.StringAttribute{
 				Description: "Optional delay before executing the action. Format: ISO 8601 duration string (e.g. 'P1D' = 1 day, 'PT2H' = 2 hours) or empty for immediate execution.",
@@ -111,7 +114,16 @@ func (r *CiviRulesRuleActionResource) Create(ctx context.Context, req resource.C
 		"is_active": plan.IsActive.ValueBool(),
 	}
 	if !plan.ActionParams.IsNull() && !plan.ActionParams.IsUnknown() && plan.ActionParams.ValueString() != "" {
-		values["action_params"] = plan.ActionParams.ValueString()
+		decoded, err := decodeJSONAttribute(plan.ActionParams.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("action_params"),
+				"Invalid action_params JSON",
+				"action_params must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["action_params"] = phpSerialize(decoded)
 	}
 	if !plan.Delay.IsNull() && !plan.Delay.IsUnknown() && plan.Delay.ValueString() != "" {
 		values["delay"] = plan.Delay.ValueString()
@@ -123,14 +135,13 @@ func (r *CiviRulesRuleActionResource) Create(ctx context.Context, req resource.C
 		return
 	}
 
-
 	// Re-read to get complete state (Create response is sparse)
 	if createdID, ok := GetInt64(result, "id"); ok {
 		if fullResult, err2 := r.client.GetByID("CiviRulesRuleAction", createdID, nil); err2 == nil {
 			result = fullResult
 		}
 	}
-	r.mapResultToState(result, &plan)
+	r.mapResultToState(result, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -148,7 +159,7 @@ func (r *CiviRulesRuleActionResource) Read(ctx context.Context, req resource.Rea
 		return
 	}
 
-	r.mapResultToState(result, &state)
+	r.mapResultToState(result, &state, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -170,7 +181,16 @@ func (r *CiviRulesRuleActionResource) Update(ctx context.Context, req resource.U
 		"is_active": plan.IsActive.ValueBool(),
 	}
 	if !plan.ActionParams.IsNull() && !plan.ActionParams.IsUnknown() && plan.ActionParams.ValueString() != "" {
-		values["action_params"] = plan.ActionParams.ValueString()
+		decoded, err := decodeJSONAttribute(plan.ActionParams.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("action_params"),
+				"Invalid action_params JSON",
+				"action_params must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["action_params"] = phpSerialize(decoded)
 	} else {
 		values["action_params"] = nil
 	}
@@ -197,7 +217,7 @@ func (r *CiviRulesRuleActionResource) Update(ctx context.Context, req resource.U
 		)
 		return
 	}
-	r.mapResultToState(result, &plan)
+	r.mapResultToState(result, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -223,7 +243,7 @@ func (r *CiviRulesRuleActionResource) ImportState(ctx context.Context, req resou
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 }
 
-func (r *CiviRulesRuleActionResource) mapResultToState(result map[string]any, model *CiviRulesRuleActionResourceModel) {
+func (r *CiviRulesRuleActionResource) mapResultToState(result map[string]any, model *CiviRulesRuleActionResourceModel, diags *diag.Diagnostics) {
 	if id, ok := GetInt64(result, "id"); ok {
 		model.ID = types.Int64Value(id)
 	}
@@ -234,9 +254,27 @@ func (r *CiviRulesRuleActionResource) mapResultToState(result map[string]any, mo
 		model.ActionID = types.Int64Value(v)
 	}
 	if v, ok := GetString(result, "action_params"); ok && v != "" {
-		model.ActionParams = types.StringValue(v)
+		decoded, err := phpUnserialize(v)
+		if err != nil {
+			diags.AddAttributeError(
+				path.Root("action_params"),
+				"Could not decode action_params",
+				"CiviRules returned action_params that is not valid PHP serialize() data: "+err.Error(),
+			)
+			return
+		}
+		encoded, err := encodeJSONAttribute(decoded)
+		if err != nil {
+			diags.AddAttributeError(
+				path.Root("action_params"),
+				"Could not encode action_params",
+				err.Error(),
+			)
+			return
+		}
+		model.ActionParams = jsontypes.NewNormalizedValue(encoded)
 	} else {
-		model.ActionParams = types.StringNull()
+		model.ActionParams = jsontypes.NewNormalizedNull()
 	}
 	if v, ok := GetString(result, "delay"); ok && v != "" {
 		model.Delay = types.StringValue(v)

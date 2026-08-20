@@ -11,12 +11,6 @@ Attaches an action to a CiviRules rule (entity: `CiviRulesRuleAction`). One rule
 
 ## Example Usage
 
-CiviRules stores `action_params` via `serialize()` and reads them with
-`unserialize()` (see `CRM/Civirules/Action/*Form.php`). Values written
-as JSON are silently accepted at write time but the action fails
-(silently or with an error) at runtime because `unserialize()` cannot
-decode them. Pass a PHP-serialized string.
-
 ```terraform
 data "civicrm_civirules_action" "change_case_status" {
   name = "change_case_status"
@@ -25,11 +19,18 @@ data "civicrm_civirules_action" "change_case_status" {
 resource "civicrm_civirules_rule_action" "close_on_complete" {
   rule_id   = civicrm_civirules_rule.my_rule.id
   action_id = data.civicrm_civirules_action.change_case_status.id
-  # a:1:{s:14:"case_status_id";i:2;}
-  action_params = "a:1:{s:14:\"case_status_id\";i:2;}"
+  action_params = jsonencode({
+    case_status_id = 2
+  })
   is_active = true
 }
 ```
+
+`action_params` is a `jsonencode(...)`-formatted JSON string on the Terraform side (type
+`jsontypes.Normalized`, so key order and whitespace differences don't cause drift). CiviRules
+itself stores this PHP `serialize()`-encoded and reads it back with `unserialize()`; this
+resource converts JSON to and from that format automatically, so config only ever deals with
+JSON.
 
 ## Argument Reference
 
@@ -42,7 +43,7 @@ The following arguments are supported:
 
 ### Optional
 
-- `action_params` (String) PHP `serialize()`-encoded parameters passed to the action class. Structure depends on the action type (e.g. `a:1:{s:9:"status_id";s:1:"2";}` for a change-case-status action). See note in *Example Usage* above; JSON is silently accepted at write time but breaks the action at runtime.
+- `action_params` (String) Parameters passed to the action class, as a JSON string (e.g. `jsonencode(...)`). Structure depends on the action type (e.g. `{"status_id": "2"}` for a change-case-status action). Semantically compared — key order and whitespace don't affect drift.
 - `delay` (String) Delay before executing the action. ISO 8601 duration string (e.g. `"P1D"` = 1 day, `"PT2H"` = 2 hours). Leave empty for immediate execution.
 - `is_active` (Boolean) Whether this action is active. Default: `true`.
 

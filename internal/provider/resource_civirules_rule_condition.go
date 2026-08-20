@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strconv"
 
+	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -29,12 +31,12 @@ type CiviRulesRuleConditionResource struct {
 }
 
 type CiviRulesRuleConditionResourceModel struct {
-	ID              types.Int64  `tfsdk:"id"`
-	RuleID          types.Int64  `tfsdk:"rule_id"`
-	ConditionID     types.Int64  `tfsdk:"condition_id"`
-	ConditionParams types.String `tfsdk:"condition_params"`
-	IsActive        types.Bool   `tfsdk:"is_active"`
-	Negate          types.Bool   `tfsdk:"negate"`
+	ID              types.Int64          `tfsdk:"id"`
+	RuleID          types.Int64          `tfsdk:"rule_id"`
+	ConditionID     types.Int64          `tfsdk:"condition_id"`
+	ConditionParams jsontypes.Normalized `tfsdk:"condition_params"`
+	IsActive        types.Bool           `tfsdk:"is_active"`
+	Negate          types.Bool           `tfsdk:"negate"`
 }
 
 func NewCiviRulesRuleConditionResource() resource.Resource {
@@ -47,7 +49,7 @@ func (r *CiviRulesRuleConditionResource) Metadata(_ context.Context, req resourc
 
 func (r *CiviRulesRuleConditionResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Attaches a condition to a CiviRules rule (entity: CiviRulesRuleCondition). The condition_id references a CiviRulesCondition type. Parameters are passed as a JSON string whose structure depends on the condition class.",
+		Description: "Attaches a condition to a CiviRules rule (entity: CiviRulesRuleCondition). The condition_id references a CiviRulesCondition type. condition_params is a JSON string whose structure depends on the condition class; the resource converts it to/from the PHP serialize() format CiviRules stores internally.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.Int64Attribute{
 				Description: "Unique ID of the rule-condition link.",
@@ -65,8 +67,9 @@ func (r *CiviRulesRuleConditionResource) Schema(_ context.Context, _ resource.Sc
 				Required:    true,
 			},
 			"condition_params": schema.StringAttribute{
-				Description: "PHP serialize()-encoded parameters passed to the condition class. CiviRules stores this via serialize() and reads with unserialize(); JSON is silently accepted at write time but breaks the condition at runtime. Structure depends on the condition type (e.g. 'a:1:{s:12:\"case_type_id\";s:1:\"3\";}' for a case-type condition).",
+				Description: "Parameters passed to the condition class, as a JSON string (e.g. jsonencode({case_type_id = 3})). CiviRules itself stores this PHP serialize()-encoded and reads it with unserialize(); this attribute handles that conversion automatically, so config only ever deals with JSON. Structure depends on the condition type.",
 				Optional:    true,
+				CustomType:  jsontypes.NormalizedType{},
 			},
 			"is_active": schema.BoolAttribute{
 				Description: "Whether this condition is active. Default: true.",
@@ -115,7 +118,16 @@ func (r *CiviRulesRuleConditionResource) Create(ctx context.Context, req resourc
 		"negate":       plan.Negate.ValueBool(),
 	}
 	if !plan.ConditionParams.IsNull() && !plan.ConditionParams.IsUnknown() && plan.ConditionParams.ValueString() != "" {
-		values["condition_params"] = plan.ConditionParams.ValueString()
+		decoded, err := decodeJSONAttribute(plan.ConditionParams.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("condition_params"),
+				"Invalid condition_params JSON",
+				"condition_params must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["condition_params"] = phpSerialize(decoded)
 	}
 
 	result, err := r.client.Create("CiviRulesRuleCondition", values)
@@ -124,14 +136,13 @@ func (r *CiviRulesRuleConditionResource) Create(ctx context.Context, req resourc
 		return
 	}
 
-
 	// Re-read to get complete state (Create response is sparse)
 	if createdID, ok := GetInt64(result, "id"); ok {
 		if fullResult, err2 := r.client.GetByID("CiviRulesRuleCondition", createdID, nil); err2 == nil {
 			result = fullResult
 		}
 	}
-	r.mapResultToState(result, &plan)
+	r.mapResultToState(result, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -149,7 +160,7 @@ func (r *CiviRulesRuleConditionResource) Read(ctx context.Context, req resource.
 		return
 	}
 
-	r.mapResultToState(result, &state)
+	r.mapResultToState(result, &state, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -172,7 +183,16 @@ func (r *CiviRulesRuleConditionResource) Update(ctx context.Context, req resourc
 		"negate":       plan.Negate.ValueBool(),
 	}
 	if !plan.ConditionParams.IsNull() && !plan.ConditionParams.IsUnknown() && plan.ConditionParams.ValueString() != "" {
-		values["condition_params"] = plan.ConditionParams.ValueString()
+		decoded, err := decodeJSONAttribute(plan.ConditionParams.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddAttributeError(
+				path.Root("condition_params"),
+				"Invalid condition_params JSON",
+				"condition_params must be valid JSON (e.g. produced by jsonencode(...)): "+err.Error(),
+			)
+			return
+		}
+		values["condition_params"] = phpSerialize(decoded)
 	} else {
 		values["condition_params"] = nil
 	}
@@ -194,7 +214,7 @@ func (r *CiviRulesRuleConditionResource) Update(ctx context.Context, req resourc
 		)
 		return
 	}
-	r.mapResultToState(result, &plan)
+	r.mapResultToState(result, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
 }
 
@@ -220,7 +240,7 @@ func (r *CiviRulesRuleConditionResource) ImportState(ctx context.Context, req re
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), id)...)
 }
 
-func (r *CiviRulesRuleConditionResource) mapResultToState(result map[string]any, model *CiviRulesRuleConditionResourceModel) {
+func (r *CiviRulesRuleConditionResource) mapResultToState(result map[string]any, model *CiviRulesRuleConditionResourceModel, diags *diag.Diagnostics) {
 	if id, ok := GetInt64(result, "id"); ok {
 		model.ID = types.Int64Value(id)
 	}
@@ -231,9 +251,27 @@ func (r *CiviRulesRuleConditionResource) mapResultToState(result map[string]any,
 		model.ConditionID = types.Int64Value(v)
 	}
 	if v, ok := GetString(result, "condition_params"); ok && v != "" {
-		model.ConditionParams = types.StringValue(v)
+		decoded, err := phpUnserialize(v)
+		if err != nil {
+			diags.AddAttributeError(
+				path.Root("condition_params"),
+				"Could not decode condition_params",
+				"CiviRules returned condition_params that is not valid PHP serialize() data: "+err.Error(),
+			)
+			return
+		}
+		encoded, err := encodeJSONAttribute(decoded)
+		if err != nil {
+			diags.AddAttributeError(
+				path.Root("condition_params"),
+				"Could not encode condition_params",
+				err.Error(),
+			)
+			return
+		}
+		model.ConditionParams = jsontypes.NewNormalizedValue(encoded)
 	} else {
-		model.ConditionParams = types.StringNull()
+		model.ConditionParams = jsontypes.NewNormalizedNull()
 	}
 	if v, ok := GetBool(result, "is_active"); ok {
 		model.IsActive = types.BoolValue(v)

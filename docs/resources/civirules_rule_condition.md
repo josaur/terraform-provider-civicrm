@@ -11,11 +11,6 @@ Attaches a condition to a CiviRules rule (entity: `CiviRulesRuleCondition`). One
 
 ## Example Usage
 
-CiviRules stores `condition_params` via `serialize()` and reads them with
-`unserialize()` (see `CRM/Civirules/Condition/*Form.php`). Values written
-as JSON make the condition unreadable in the UI and skip the condition's
-runtime check silently. Pass a PHP-serialized string.
-
 ```terraform
 data "civicrm_civirules_condition" "activity_type" {
   name = "activity_type"
@@ -25,12 +20,19 @@ data "civicrm_civirules_condition" "activity_type" {
 resource "civicrm_civirules_rule_condition" "check_type" {
   rule_id      = civicrm_civirules_rule.my_rule.id
   condition_id = data.civicrm_civirules_condition.activity_type.id
-  # a:1:{s:16:"activity_type_id";s:9:"Follow up";}
-  condition_params = "a:1:{s:16:\"activity_type_id\";s:9:\"Follow up\";}"
+  condition_params = jsonencode({
+    activity_type_id = "Follow up"
+  })
   is_active = true
   negate    = false
 }
 ```
+
+`condition_params` is a `jsonencode(...)`-formatted JSON string on the Terraform side (type
+`jsontypes.Normalized`, so key order and whitespace differences don't cause drift). CiviRules
+itself stores this PHP `serialize()`-encoded and reads it back with `unserialize()`; this
+resource converts JSON to and from that format automatically, so config only ever deals with
+JSON.
 
 ## Argument Reference
 
@@ -43,7 +45,7 @@ The following arguments are supported:
 
 ### Optional
 
-- `condition_params` (String) PHP `serialize()`-encoded parameters passed to the condition class. Structure depends on the condition type (e.g. `a:1:{s:12:"case_type_id";s:1:"3";}` for a case-type condition). See note in *Example Usage* above; JSON is silently accepted at write time but breaks the condition at runtime.
+- `condition_params` (String) Parameters passed to the condition class, as a JSON string (e.g. `jsonencode(...)`). Structure depends on the condition type (e.g. `{"case_type_id": "3"}` for a case-type condition). Semantically compared — key order and whitespace don't affect drift.
 - `is_active` (Boolean) Whether this condition is active. Default: `true`.
 - `negate` (Boolean) When `true`, the condition logic is inverted (NOT). Default: `false`.
 
